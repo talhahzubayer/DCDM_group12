@@ -1,0 +1,307 @@
+---
+title: "Data_cleaning_primary"
+output: html_document
+date: "2025-11-06"
+---
+
+```{r}
+library("dplyr")
+getwd()
+dir()
+setwd("/Users/sabrinasaidoune/Desktop/DCDM_CW1_GROUP12/Group12/")
+getwd()
+
+head()
+```
+
+
+```{r}
+# Creating an output file
+if (!dir.exists("data_transposed")) dir.create("data_transposed")
+
+# List all CSV files in the data file
+files <- list.files("data", pattern = "\\.csv$", full.names = TRUE)
+```
+
+getwd()
+dir()
+
+```{r}
+# Create a loop that trasnposes all the tables in the data file
+
+files <- list.files("data", pattern = "\\.csv$",full.names = TRUE)
+
+for (f in files) {
+  df <- read.csv(f, header = TRUE, stringsAsFactors = FALSE)
+  df_t <- t(df)
+  out_file <- file.path("data_trasnposed", basename(f))
+  write.csv(df_t, out_file, row.names = FALSE)
+  cat("Trasnposed:", basename(f), "\n")
+}
+
+```
+
+```{r}
+setwd("/Users/sabrinasaidoune/Desktop/DCDM_CW1_GROUP12/Group12/data/")
+# Folder path
+folder_path <- "/Users/sabrinasaidoune/Desktop/DCDM_CW1_GROUP12/Group12/data/"
+
+# Get all CSV file names
+file_list <- list.files(path = folder_path, pattern = "\\.csv$", full.names = TRUE)
+
+# Read and transpose each CSV
+transposed_list <- lapply(file_list, function(file) {
+  df <- read.csv(file, header = TRUE, stringsAsFactors = FALSE)
+  t_df <- as.data.frame(t(df))  # transpose
+  colnames(t_df) <- df[, 1]     # optional: use first column as headers
+  return(t_df)
+})
+
+# Name each element by filename
+names(transposed_list) <- basename(file_list)
+
+# view one transposed file
+head(transposed_list[[1]])
+```
+
+
+```{r}
+# Set your original folder path
+folder_path <- "/Users/sabrinasaidoune/Desktop/DCDM_CW1_GROUP12/Group12/data/"
+
+# Set a new folder for transposed files
+transposed_folder <- "/Users/sabrinasaidoune/Desktop/DCDM_CW1_GROUP12/Group12/transposed_data/"
+
+# Create the folder if it doesn't exist
+if (!dir.exists(transposed_folder)) {
+  dir.create(transposed_folder)
+}
+
+# List all CSV files in the original folder
+file_list <- list.files(path = folder_path, pattern = "*.csv", full.names = TRUE)
+
+# Loop through each file
+for (file in file_list) {
+  # Read CSV (assuming the first column is row names)
+  df <- read.csv(file, row.names = 1)
+  
+  # Transpose the data
+  df_t <- t(df)
+  
+  # Convert back to data frame
+  df_t <- as.data.frame(df_t)
+  
+  # Save the transposed file to the new folder
+  write.csv(df_t, file = file.path(transposed_folder, paste0("transposed_", basename(file))), row.names = TRUE)
+}
+
+
+```
+
+```{r}
+# Set your folder paths
+folder_path <- "/Users/sabrinasaidoune/Desktop/DCDM_CW1_GROUP12/Group12/data/"
+transposed_folder <- "/Users/sabrinasaidoune/Desktop/DCDM_CW1_GROUP12/Group12/transposed_data/"
+
+# List all CSV files in the original folder
+file_list <- list.files(path = folder_path, pattern = "*.csv", full.names = TRUE)
+
+# Loop through each file
+for (file in file_list) {
+  # Read CSV (assuming the first column is row names)
+  df <- read.csv(file, row.names = 1)
+  
+  # Transpose the data
+  df_t <- t(df)
+  
+  # Convert back to data frame
+  df_t <- as.data.frame(df_t)
+  
+  # Add 'gene_accession_id' as the first column
+  df_t <- cbind(gene_accession_id = rownames(df_t), df_t)
+  rownames(df_t) <- NULL
+  
+  # Save the transposed file into the transposed_data folder
+  write.csv(df_t, file = file.path(transposed_folder, paste0("transposed_", basename(file))), row.names = FALSE)
+}
+
+```
+
+# Merge all tables into one big table
+
+```{r}
+# Set your folder path for transposed files
+transposed_folder <- "/Users/sabrinasaidoune/Desktop/DCDM_CW1_GROUP12/Group12/transposed_data/"
+
+# List all transposed CSV files
+file_list <- list.files(path = transposed_folder, pattern = "*.csv", full.names = TRUE)
+
+# Read all files into a list
+df_list <- lapply(file_list, function(file) {
+  read.csv(file, stringsAsFactors = FALSE)
+})
+
+# Define the correct 8 columns
+expected_cols <- c("gene_accession_id", "gene_symbol", "mouse_strain", 
+                   "mouse_life_stage", "parameter_id", "pvalue", 
+                   "parameter_name", "analysis_id")
+
+# Align all data frames to have these exact columns
+df_list_aligned <- lapply(df_list, function(df) {
+  # Clean up column name spaces
+  names(df) <- trimws(names(df))
+  
+  # Add missing columns as NA
+  missing_cols <- setdiff(expected_cols, names(df))
+  for (col in missing_cols) {
+    df[[col]] <- NA
+  }
+  
+  # Keep only the expected columns (ignore extras)
+  df <- df[expected_cols]
+  
+  return(df)
+})
+
+# Combine all aligned data frames
+combined_data <- do.call(rbind, df_list_aligned)
+
+# Print summary info
+cat("Combined table created with", nrow(combined_data), "rows and", ncol(combined_data), "columns.\n")
+
+# Save to a new CSV file
+write.csv(combined_data, 
+          file = file.path(transposed_folder, "data_table_combined.csv"), 
+          row.names = FALSE)
+
+```
+
+# Clean the data in accordance to the SOP provided
+```{r}
+
+# Set folder path
+group_folder <- "/Users/sabrinasaidoune/Desktop/DCDM_CW1_GROUP12/Group12/"
+
+# Load the original combined table (unchanged)
+combined_file <- file.path(group_folder, "data_table_combined.csv")
+combined_data <- read.csv(combined_file, stringsAsFactors = FALSE)
+
+# Create a copy for cleaning
+cleaned_data <- combined_data
+
+# Clean data according to SOP rules
+
+# analysis_id: string, length exactly 15
+cleaned_data <- cleaned_data[nchar(as.character(cleaned_data$analysis_id)) == 15, ]
+cleaned_data$analysis_id <- as.character(cleaned_data$analysis_id)
+
+# gene_accession_id: string, length 9-11
+cleaned_data <- cleaned_data[nchar(as.character(cleaned_data$gene_accession_id)) >= 9 &
+                             nchar(as.character(cleaned_data$gene_accession_id)) <= 11, ]
+cleaned_data$gene_accession_id <- as.character(cleaned_data$gene_accession_id)
+
+# gene_symbol: string, length 1-13
+cleaned_data <- cleaned_data[nchar(as.character(cleaned_data$gene_symbol)) >= 1 &
+                             nchar(as.character(cleaned_data$gene_symbol)) <= 13, ]
+cleaned_data$gene_symbol <- as.character(cleaned_data$gene_symbol)
+
+# mouse_strain: string, length 3-6
+cleaned_data <- cleaned_data[nchar(as.character(cleaned_data$mouse_strain)) >= 3 &
+                             nchar(as.character(cleaned_data$mouse_strain)) <= 6, ]
+cleaned_data$mouse_strain <- as.character(cleaned_data$mouse_strain)
+
+# mouse_life_stage: string, length 4-17
+cleaned_data <- cleaned_data[nchar(as.character(cleaned_data$mouse_life_stage)) >= 4 &
+                             nchar(as.character(cleaned_data$mouse_life_stage)) <= 17, ]
+cleaned_data$mouse_life_stage <- as.character(cleaned_data$mouse_life_stage)
+
+# parameter_id: string, length 15-20
+cleaned_data <- cleaned_data[nchar(as.character(cleaned_data$parameter_id)) >= 15 &
+                             nchar(as.character(cleaned_data$parameter_id)) <= 20, ]
+cleaned_data$parameter_id <- as.character(cleaned_data$parameter_id)
+
+# parameter_name: string, length 2-74
+cleaned_data <- cleaned_data[nchar(as.character(cleaned_data$parameter_name)) >= 2 &
+                             nchar(as.character(cleaned_data$parameter_name)) <= 74, ]
+cleaned_data$parameter_name <- as.character(cleaned_data$parameter_name)
+
+# pvalue: float, 0-1
+cleaned_data$pvalue <- as.numeric(cleaned_data$pvalue)
+cleaned_data <- cleaned_data[cleaned_data$pvalue >= 0 & cleaned_data$pvalue <= 1, ]
+
+# Save the cleaned table as a NEW file in Group12
+write.csv(cleaned_data, file.path(group_folder, "data_table_cleaned.csv"), row.names = FALSE)
+
+cat("cleaning complete. Original table untouched. Cleaned table saved as data_table_cleaned.csv\n")
+cat("Remaining rows after cleaning:", nrow(cleaned_data), "\n")
+
+
+```
+
+```{r}
+# Set folder path
+group_folder <- "/Users/sabrinasaidoune/Desktop/DCDM_CW1_GROUP12/Group12/"
+
+# Load the original combined table
+combined_file <- file.path(group_folder, "data_table_combined.csv")
+combined_data <- read.csv(combined_file, stringsAsFactors = FALSE)
+
+# Create a copy for cleaning
+cleaned_data <- combined_data
+
+# Initialize a logical vector to track valid rows
+valid_rows <- rep(TRUE, nrow(cleaned_data))
+
+# Helper function to update valid_rows
+check_length <- function(column, min_len, max_len) {
+  nchar_val <- nchar(as.character(column))
+  return(nchar_val >= min_len & nchar_val <= max_len)
+}
+
+# Apply SOP rules
+valid_rows <- valid_rows & (nchar(as.character(cleaned_data$analysis_id)) == 15)
+valid_rows <- valid_rows & check_length(cleaned_data$gene_accession_id, 9, 11)
+valid_rows <- valid_rows & check_length(cleaned_data$gene_symbol, 1, 13)
+valid_rows <- valid_rows & check_length(cleaned_data$mouse_strain, 3, 6)
+valid_rows <- valid_rows & check_length(cleaned_data$mouse_life_stage, 4, 17)
+valid_rows <- valid_rows & check_length(cleaned_data$parameter_id, 15, 20)
+valid_rows <- valid_rows & check_length(cleaned_data$parameter_name, 2, 74)
+cleaned_data$pvalue <- as.numeric(cleaned_data$pvalue)
+valid_rows <- valid_rows & (cleaned_data$pvalue >= 0 & cleaned_data$pvalue <= 1)
+
+# Split the data into cleaned and removed tables
+final_cleaned <- cleaned_data[valid_rows, ]
+removed_data <- cleaned_data[!valid_rows, ]
+
+# Save the cleaned table
+write.csv(final_cleaned, file.path(group_folder, "data_table_cleaned.csv"), row.names = FALSE)
+
+# Save the removed/erased rows
+write.csv(removed_data, file.path(group_folder, "data_table_removed.csv"), row.names = FALSE)
+
+cat("cleaning complete.\n")
+cat("Remaining rows (cleaned):", nrow(final_cleaned), "\n")
+cat("Removed rows (failed SOP):", nrow(removed_data), "\n")
+
+```
+
+```{r}
+# Set folder path
+group_folder <- "/Users/sabrinasaidoune/Desktop/DCDM_CW1_GROUP12/Group12/"
+
+# Load the cleaned data
+cleaned_file <- file.path(group_folder, "data_table_cleaned.csv")
+cleaned_data <- read.csv(cleaned_file, stringsAsFactors = FALSE)
+
+# Remove any rows containing NA (creates a new dataset)
+noNA_data <- na.omit(cleaned_data)
+
+# Save the new table as a separate file
+write.csv(noNA_data, file.path(group_folder, "data_table_noNA.csv"), row.names = FALSE)
+
+# Print summary
+cat(" New table created without NAs. Original table remains untouched.\n")
+cat("Rows remaining:", nrow(noNA_data), "\n")
+
+```
+
