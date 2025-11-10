@@ -1,0 +1,106 @@
+---
+title: "SORTING"
+output: html_document
+date: "2025-11-07"
+---
+##Loop for changing the name 
+```{r}
+# List all CSV files in natural order
+files <- list.files(pattern = "\\.csv$", full.names = FALSE)
+files <- sort(files)  # ensures alphabetical/numeric order
+
+# Loop through and rename sequentially
+for (i in seq_along(files)) {
+  new_name <- paste0("file", i, ".csv")
+  file.rename(files[i], new_name)
+}
+
+```
+
+
+##loop for transposing the csv files
+```{r}
+#List all CSV files in the current folder
+files <- list.files(pattern = "\\.csv$", full.names = TRUE)
+
+#Loop to transpose each CSV file
+for (file in files) {
+  # Read CSV (no header)
+  data <- read.csv(file, header = FALSE, stringsAsFactors = FALSE)
+  
+  # Transpose the data
+  transposed <- t(data)
+  
+  # Convert to data frame
+  transposed_df <- as.data.frame(transposed, stringsAsFactors = FALSE)
+  
+  # Make the first row the column names
+  colnames(transposed_df) <- transposed_df[1, ]
+  transposed_df <- transposed_df[-1, ]
+  rownames(transposed_df) <- NULL
+  
+  # Create new file name
+  new_name <- paste0("transposed_", basename(file))
+  
+  # Save the transposed file
+  write.csv(transposed_df, new_name, row.names = FALSE)
+  
+  cat("Transposed:", file, "→", new_name, "\n")
+}
+
+cat("All CSV files have been transposed!\n\n")
+
+length(list.files(pattern = "^transposed_.*\\.csv$"))
+```
+
+##changing col names for all the transposed files
+```{r}
+# List all transposed CSV files
+files <- list.files(pattern = "^transposed_.*\\.csv$")
+
+# Define the new column names
+new_colnames <- c(
+  "gene_accession_id",
+  "gene_symbol",
+  "mouse_strain",
+  "mouse_life_stage",
+  "parameter_id",
+  "pvalue",
+  "parameter_name",
+  "analysis_id"
+)
+
+# Loop through each file
+for (file in files) {
+  
+  # Read the CSV file
+  df <- read.csv(file, stringsAsFactors = FALSE, check.names = FALSE)
+  
+  # Replace column names with your desired ones
+  colnames(df) <- new_colnames
+  
+  # Save the updated file (overwrite or create a new one)
+  write.csv(df, file, row.names = FALSE)
+  
+  print(paste("updated column names for:", file))
+}
+
+```
+
+
+##joining all the files together
+
+```{r}
+# List all transposed CSV files
+files <- list.files(pattern = "^transposed_.*\\.csv$")
+
+# Read and combine all files
+combined <- do.call(rbind, lapply(files, read.csv, stringsAsFactors = FALSE))
+
+# Save combined file
+write.csv(combined, "combined.csv", row.names = FALSE)
+
+print("All transposed files combined into combined.csv!")
+
+```
+
