@@ -1,0 +1,8 @@
+parameter_id,IMPC_ABR_006_001
+gene_symbol,Smarcd3
+mouse_life_stage,E15.5
+mouse_strain,C57BL
+gene_accession_id,MGI:1914243
+parameter_name,12kHz-evoked ABR Threshold
+analysis_id,cuxp214hzfgn5sk
+pvalue,0.9605773

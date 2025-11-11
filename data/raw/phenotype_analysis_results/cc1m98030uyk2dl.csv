@@ -1,0 +1,8 @@
+gene_accession_id,MGI:2442782
+gene_symbol,Baz2b
+mouse_strain,C57BL
+mouse_life_stage,Early adult
+parameter_id,IMPC_ABR_002_001
+pvalue,0.4540773
+parameter_name,Click-evoked ABR threshold
+analysis_id,cc1m98030uyk2dl

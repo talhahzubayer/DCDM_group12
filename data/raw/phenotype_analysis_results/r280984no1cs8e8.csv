@@ -1,0 +1,8 @@
+gene_accession_id,MGI:1918731
+gene_symbol,Alpk1
+mouse_strain,C57BL
+mouse_life_stage,Early adult
+parameter_id,IMPC_ABR_002_001
+pvalue,0.1475214
+parameter_name,Click-evoked ABR threshold
+analysis_id,r280984no1cs8e8

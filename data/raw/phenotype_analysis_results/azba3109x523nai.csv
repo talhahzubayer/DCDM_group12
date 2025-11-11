@@ -1,0 +1,8 @@
+gene_accession_id,MGI:1890127
+pvalue,0.3608542
+gene_symbol,Plxnc1
+mouse_strain,C57BL
+analysis_id,azba3109x523nai
+mouse_life_stage,Early adult
+parameter_id,IMPC_ABR_006_001
+parameter_name,12kHz-evoked ABR Threshold
