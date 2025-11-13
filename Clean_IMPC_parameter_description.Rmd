@@ -1,0 +1,98 @@
+---
+title: "Cleaning the meta data"
+author: "Mia"
+date: "2025-11-13"
+output: html_document
+---
+Load the libraies
+```{r setup, include=FALSE}
+library(dplyr)
+library(ggplot2)
+library(readr)
+
+```
+
+
+```{r}
+getwd()
+parameter_doc <- read.table("IMPC_parameter_description.txt", header = TRUE, sep = ',')
+
+#Count hoe many duplicate parameter orignial IDs there are
+print(sum(duplicated(parameter_doc$impcParameterOrigId)))
+#Remove duplicate IDs
+duplicate_IDs <- duplicated(parameter_doc)
+cleaned_by_IDs <- parameter_doc[!duplicate_IDs,]
+duplicate_data <- parameter_doc[duplicate_IDs,]
+
+#Check is there any duplicate in the name 
+print(sum(duplicated(parameter_doc$name))) #2320
+print(sum(duplicated(cleaned_by_IDs$name))) #2306
+
+#create a vector that contain all the duplicate name with the IDs and descriptions 
+duplicate_of_name <- cleaned_by_IDs %>%
+  filter(duplicated(cleaned_by_IDs$name) | duplicated(cleaned_by_IDs$name, formLast = TRUE)) %>%
+  select("impcParameterOrigId", "name", "description")
+```
+Remove all the blank or missing value in data 
+```{r}
+
+#check the blank row 
+print(sum(cleaned_by_IDs$description == " ")) #937
+print(sum(!is.na(cleaned_by_IDs$description))) #no NA #4509
+#Cuz can actually see NA in the cleaned_... vector, therefore checking what is going on here
+#turns out that the NA is typing in as space+NA
+print(sum(cleaned_by_IDs$description == " NA")) #1276
+print(sum(is.na(cleaned_by_IDs$description) | cleaned_by_IDs$description == " NA", na.rm = TRUE)) # 1276
+
+#check there are duplicate names with different unqie descriptions 
+blank_or_NA_row <- cleaned_by_IDs %>%
+  filter(description == " NA" | description == " ") #2213
+
+removed_blank_description <-is.na(cleaned_by_IDs$description) |
+  cleaned_by_IDs$description == " NA"|
+  cleaned_by_IDs$description == " "
+
+cleaned_by_IDs_blank <- cleaned_by_IDs[!removed_blank_description,]
+```
+After remove blank and missing value
+there has some duplicate name in unique description 
+keep all in row 
+```{r}
+
+#group with name check is there any duplicate in description 
+duplicate_description_grouped <- cleaned_by_IDs_blank %>%
+  group_by(name) %>%
+  summarise(
+    count_of_duplication = n_distinct(description),
+    descriptions_combine = paste(unique(description), collapse = ", ")
+  ) %>%
+  filter(count_of_duplication > 1) %>%
+  ungroup()
+
+no_duplicate <- cleaned_by_IDs_blank %>%
+  group_by(name) %>%
+  arrange(description, .by_group = TRUE) %>%  
+  distinct(name, description, .keep_all = TRUE) %>%             
+  ungroup()
+```
+
+check the parameter ID in SOP 
+```{r}
+#check the string length ranges 
+check_length <- function(column, min_len, max_len) {
+  nchar_val <- nchar(as.character(column))
+  return(nchar_val >= min_len & nchar_val <= max_len)
+}
+
+#Create a vactor to track valid rows 
+valid_rows <- rep(TRUE, nrow(no_duplicate))
+
+#Apply SOP rules 
+valid_rows <- valid_rows & check_length(no_duplicate$parameterId, 15,20)
+final_clean_data <- no_duplicate[valid_rows,]
+
+getwd()
+dir.create("/Users/miasmacbook/Desktop/Group12/Document_made", showWarnings = FALSE)
+write.csv(final_clean_data, "/Users/miasmacbook/Desktop/Group12/Document_made/cleaned_IMPC_parameter_description.csv", row.names = FALSE)
+```
+
