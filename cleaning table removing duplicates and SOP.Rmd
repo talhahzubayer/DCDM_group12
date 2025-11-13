@@ -85,6 +85,20 @@ removed_rows <- cleaned_data[!valid_rows, ]
 write.csv(final_cleaned, file.path(folder_path, "data_table_cleaned_SOP.csv"), row.names = FALSE)
 write.csv(removed_rows, file.path(folder_path, "data_table_removed_SOP.csv"), row.names = FALSE)
 
+# REMOVING NA's from the data
+
+data_table_cleaned_SOP[data_table_cleaned_SOP == ""] <- NA
+data_table_cleaned_SOP[data_table_cleaned_SOP == "NA"] <- NA
+
+# Create a new data frame without rows containing NA
+data_table_noNA <- na.omit(data_table_cleaned_SOP)
+
+# Optional: check the new data
+head(data_table_noNA)
+
+# Save the cleaned data to a new CSV file
+write.csv(data_table_noNA, "data_table_noNA.csv", row.names = FALSE)
+
 
 ```
 
