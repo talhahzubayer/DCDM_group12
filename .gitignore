@@ -1,0 +1,2 @@
+# Ignore transposed CSV files directory
+data/raw/phenotype_analysis_results_transposed/
