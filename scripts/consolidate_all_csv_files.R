@@ -105,7 +105,7 @@ for (i in seq_along(transposed_files)) {
   write.csv(df, file, row.names = FALSE)
   
   # Display progress
-  cat(glue("\rUpdated: {i}/{length(transposed_files)}"))
+  cat(glue("\rTransposed File's Column Names Updated: {i}/{length(transposed_files)}"))
   flush.console()
 }
 
