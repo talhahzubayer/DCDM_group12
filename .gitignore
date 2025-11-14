@@ -1,2 +1,5 @@
 # Ignore transposed CSV files directory
 data/raw/phenotype_analysis_results_transposed/
+
+# Ignore all CSV files generated when scripts are run
+data/processed/
