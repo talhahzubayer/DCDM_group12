@@ -15,11 +15,11 @@ DATA_SOURCE <- "csv"  # ← CHANGE THIS TO "database" WHEN READY!
 
 # CSV file paths (update these to match your folder structure)
 CSV_FILES <- list(
-  phenotype = "C:/Users/Talhah Zubayer/Documents/DCDM_group12/data/processed/cleaned_phenotype_analysis_results.csv",
-  disease = "C:/Users/Talhah Zubayer/Documents/DCDM_group12/data/processed/normalised_disease_table.csv",
-  omim = "C:/Users/Talhah Zubayer/Documents/DCDM_group12/data/processed/normalised_omim_table.csv",
-  gene_disease = "C:/Users/Talhah Zubayer/Documents/DCDM_group12/data/processed/normalised_gene_disease_association.csv",
-  parameter = "C:/Users/Talhah Zubayer/Documents/DCDM_group12/cleaned_IMPC_parameter_description_keep_blank.csv"
+  phenotype = "C:/Users/Talhah Zubayer/Documents/DCDM_group12/data/processed/Temp Files/cleaned_phenotype_analysis_results.csv",
+  disease = "C:/Users/Talhah Zubayer/Documents/DCDM_group12/data/processed/Temp Files/normalised_disease_table.csv",
+  omim = "C:/Users/Talhah Zubayer/Documents/DCDM_group12/data/processed/Temp Files/normalised_omim_table.csv",
+  gene_disease = "C:/Users/Talhah Zubayer/Documents/DCDM_group12/data/processed/Temp Files/normalised_gene_disease_association.csv",
+  parameter = "C:/Users/Talhah Zubayer/Documents/DCDM_group12/data/processed/cleaned_IMPC_parameter_description_keep_blank.csv"
 )
 
 # Database configuration (fill in when database is ready)
