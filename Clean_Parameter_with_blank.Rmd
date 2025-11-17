@@ -1,0 +1,93 @@
+---
+title: "Clean_parameter_description"
+author: "Mia"
+date: "2025-11-17"
+output: html_document
+---
+
+load the library need in this script
+```{r}
+library(dplyr)
+library(ggplot2)
+library(readr)
+```
+
+
+Start to load the file 
+```{r setup, include=FALSE}
+getwd()
+parameter_doc <- read.csv(
+  "Desktop/Group12/IMPC_parameter_description.csv",
+  header = TRUE,
+  strip.white = TRUE
+)
+readLines("Desktop/Group12/IMPC_parameter_description.csv", n = 5)
+```
+
+Check the duplicate in the data 
+```{r}
+#Count hoe many duplicate parameter orignial IDs there are
+print(sum(duplicated(parameter_doc$impcParameterOrigId)))
+#Remove duplicate IDs
+duplicate_IDs <- duplicated(parameter_doc)
+cleaned_by_IDs <- parameter_doc[!duplicate_IDs,]
+duplicate_data <- parameter_doc[duplicate_IDs,]
+
+#Check is there any duplicate in the name 
+print(sum(duplicated(parameter_doc$name))) #2320
+print(sum(duplicated(cleaned_by_IDs$name))) #2306
+
+#create a vector that contain all the duplicate name with the IDs and descriptions 
+duplicate_of_name <- cleaned_by_IDs %>%
+  filter(duplicated(cleaned_by_IDs$name) | duplicated(cleaned_by_IDs$name, formLast = TRUE)) %>%
+  select("impcParameterOrigId", "name", "description")
+#group with name check is there any duplicate in description 
+duplicate_description_grouped <- cleaned_by_IDs %>%
+  group_by(name) %>%
+  summarise(
+    count_of_duplication = n_distinct(description),
+    descriptions_combine = paste(unique(description), collapse = ", ")
+  ) %>%
+  filter(count_of_duplication > 1) %>%
+  ungroup()
+
+no_duplicate <- cleaned_by_IDs %>%
+  group_by(name) %>%
+  arrange(description, .by_group = TRUE) %>%  
+  distinct(name, description, .keep_all = TRUE) %>%             
+  ungroup()
+```
+
+Cleaning with the SOP for the parameter_id 
+```{r}
+#check the string length ranges 
+check_length <- function(column, min_len, max_len) {
+  nchar_val <- nchar(as.character(column))
+  return(nchar_val >= min_len & nchar_val <= max_len)
+}
+
+#Create a vactor to track valid rows 
+valid_rows <- rep(TRUE, nrow(no_duplicate))
+
+#Apply SOP rules 
+valid_rows <- valid_rows & check_length(no_duplicate$parameterId, 15,20)
+final_clean_data <- no_duplicate[valid_rows,]
+```
+
+change the blank row to NA 
+```{r}
+final_clean_data[] <- lapply(final_clean_data, function(x) {
+  if(is.factor(x)) x <- as.character(x)   # convert factors to characters
+  x[x == ""] <- NA                        # replace blank with NA
+  return(x)
+})
+
+```
+
+
+Save doc
+```{r}
+getwd()
+dir.create("/Users/miasmacbook/Desktop/Group12/Document_made", showWarnings = FALSE)
+write.csv(final_clean_data, "/Users/miasmacbook/Desktop/Group12/Document_made/cleaned_IMPC_parameter_description_keep_blank.csv", row.names = FALSE)
+```
