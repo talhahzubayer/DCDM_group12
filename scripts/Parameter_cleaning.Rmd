@@ -1,0 +1,20 @@
+```{r}
+# Load required library
+library(dplyr)
+library(readr)
+
+# Read the file (change filename if in a different directory)
+data <- read_csv("IMPC_parameter_description.txt", show_col_types = FALSE)
+
+# Remove duplicate rows
+data_clean <- distinct(data)
+
+# Remove duplicates based on the 'parameterId' column, keeping the first occurrence
+data_clean <- data_clean %>%
+  distinct(parameterId, .keep_all = TRUE)
+
+# Optionally, write the cleaned data to a new file
+write_csv(data_clean, "IMPC_parameter_description_cleaned.csv")
+
+```
+
