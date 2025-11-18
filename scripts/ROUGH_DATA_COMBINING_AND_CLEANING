@@ -117,4 +117,23 @@ cat("Further cleaning complete.\n")
 cat("Rows remaining after removing duplicates and outliers:", nrow(cleaned_final), "\n")
 cat("Final cleaned file saved as:", output_file, "\n")
 
+### 1. Load the original CSV file
+df <- read.csv(
+  "clean_table_final.csv",
+  header = TRUE,
+  stringsAsFactors = FALSE
+)
+
+### 2. Make a copy so the original stays unchanged
+new_df <- df
+
+### 3. Convert the gene_accession_id column to ALL CAPS
+new_df$gene_accession_id <- toupper(new_df$gene_accession_id)
+
+### 4. Save the modified data as a new CSV file
+write.csv(
+  new_df,
+  "clean_table_final_UPPERCASE.csv",
+  row.names = FALSE
+)
 ```
