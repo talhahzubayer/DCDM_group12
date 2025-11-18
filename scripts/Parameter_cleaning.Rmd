@@ -1,0 +1,39 @@
+```{r}
+library(dplyr)
+library(readr)
+library(stringr) # for str_trim
+
+# Read the file; blanks read as NA automatically
+data <- read_csv("IMPC_parameter_description.txt", show_col_types = FALSE)
+
+# Trim whitespace from 'impcParameterOrigId' and 'parameterId'
+data <- data %>%
+  mutate(
+    impcParameterOrigId = str_trim(impcParameterOrigId, side = "both"),
+    parameterId = str_trim(parameterId, side = "both")
+  )
+
+# Remove exact duplicate rows
+data_clean <- distinct(data)
+
+# Remove duplicates by impcParameterOrigId, treating NA as unique
+data_clean <- data_clean %>%
+  filter(!is.na(impcParameterOrigId)) %>%
+  distinct(impcParameterOrigId, .keep_all = TRUE) %>%
+  bind_rows(
+    data_clean %>% filter(is.na(impcParameterOrigId))
+  )
+
+# Remove duplicates by parameterId, treating NA as unique
+data_clean <- data_clean %>%
+  filter(!is.na(parameterId)) %>%
+  distinct(parameterId, .keep_all = TRUE) %>%
+  bind_rows(
+    data_clean %>% filter(is.na(parameterId))
+  )
+
+# Write out the cleaned data with blanks as "NA"
+write_csv(data_clean, "IMPC_parameter_description_cleaned.csv", na = "NA")
+
+```
+
