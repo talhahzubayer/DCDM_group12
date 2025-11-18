@@ -1,0 +1,59 @@
+```{r}
+# Creating an output file
+if (!dir.exists("data_transposed")) dir.create("data_transposed")
+
+# List all CSV files in the data file
+files <- list.files("data", pattern = "\\.csv$", full.names = TRUE)
+```
+
+
+```{r}
+# Folder path
+folder_path <- "/Users/sabrinasaidoune/Desktop/DCDM_CW1_GROUP12/Group12/data/"
+
+# Get all CSV file names
+file_list <- list.files(path = folder_path, pattern = "\\.csv$", full.names = TRUE)
+# Read and transpose each CSV
+transposed_list <- lapply(file_list, function(file) {
+  df <- read.csv(file, header = TRUE, stringsAsFactors = FALSE)
+  t_df <- as.data.frame(t(df))  # transpose
+  colnames(t_df) <- df[, 1]     # optional: use first column as headers
+  return(t_df)
+})
+
+# Name each element by filename
+names(transposed_list) <- basename(file_list)
+
+# view one transposed file
+head(transposed_list[[1]])
+```
+```{r}
+# Set your original folder path
+folder_path <- "/Users/sabrinasaidoune/Desktop/DCDM_CW1_GROUP12/Group12/data/"
+
+# Set a new folder for transposed files
+transposed_folder <- "/Users/sabrinasaidoune/Desktop/DCDM_CW1_GROUP12/Group12/transposed_data/"
+
+# Create the folder if it doesn't exist
+if (!dir.exists(transposed_folder)) {
+  dir.create(transposed_folder)
+}
+
+# List all CSV files in the original folder
+file_list <- list.files(path = folder_path, pattern = "*.csv", full.names = TRUE)
+
+# Loop through each file
+for (file in file_list) {
+  # Read CSV (assuming the first column is row names)
+  df <- read.csv(file, row.names = 1)
+  
+  # Transpose the data
+  df_t <- t(df)
+  
+  # Convert back to data frame
+  df_t <- as.data.frame(df_t)
+  
+  # Save the transposed file to the new folder
+  write.csv(df_t, file = file.path(transposed_folder, paste0("transposed_", basename(file))), row.names = TRUE)
+}
+
