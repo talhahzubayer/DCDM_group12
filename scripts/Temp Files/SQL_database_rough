@@ -1,0 +1,330 @@
+CREATE TABLE Genes (
+	gene_id INT PRIMARY KEY,
+	gene_symbol VARCHAR (100) NOT NULL 
+);
+
+SELECT * FROM Genes
+
+CREATE TABLE Genotypes (
+    genotype_id INT PRIMARY KEY,
+    gene_id INT NOT NULL,
+    mouse_strain VARCHAR(100),
+    mouse_life_stage VARCHAR(50),
+    FOREIGN KEY (gene_id) REFERENCES Genes(gene_id)
+);
+
+CREATE TABLE ParameterGroups (
+    parameter_group_id INT PRIMARY KEY,
+    parameter_group_name VARCHAR(100) NOT NULL,
+    description TEXT
+);
+
+CREATE TABLE Phenotypes (
+    phenotype_id INT PRIMARY KEY,
+    phenotype_name VARCHAR(100) NOT NULL,
+    parameter_group_id INT,
+    FOREIGN KEY (parameter_group_id) REFERENCES ParameterGroups(parameter_group_id)
+);
+
+CREATE TABLE Procedures (
+    procedure_id INT PRIMARY KEY,
+    procedure_name VARCHAR(100) NOT NULL,
+    description TEXT
+);
+
+CREATE TABLE Phenotype_Scores (
+    score_id INT PRIMARY KEY,
+    genotype_id INT NOT NULL,
+    phenotype_id INT NOT NULL,
+    p_value DECIMAL(10,5),
+    other_statistics TEXT,
+    FOREIGN KEY (genotype_id) REFERENCES Genotypes(genotype_id),
+    FOREIGN KEY (phenotype_id) REFERENCES Phenotypes(phenotype_id)
+);
+
+CREATE TABLE Diseases (
+    disease_id INT PRIMARY KEY,
+    disease_name VARCHAR(100) NOT NULL,
+    DO_ID VARCHAR(50)
+);
+
+CREATE TABLE Gene_Disease_Association (
+    gene_id INT NOT NULL,
+    disease_id INT NOT NULL,
+    PRIMARY KEY (gene_id, disease_id),
+    FOREIGN KEY (gene_id) REFERENCES Genes(gene_id),
+    FOREIGN KEY (disease_id) REFERENCES Diseases(disease_id)
+);
+
+ALTER TABLE Diseases
+ADD COLUMN omim_id VARCHAR (20);
+
+ALTER TABLE Diseases
+RENAME COLUMN mouse_mgi_id TO gene_accession_id;
+
+
+ALTER TABLE ParameterGroups 
+RENAME TO Parameters;
+
+
+ALTER TABLE Parameters 
+ADD COLUMN IMPC_parameter_id VARCHAR (20);
+
+ALTER TABLE Parameters 
+ADD COLUMN name VARCHAR (20);
+
+ALTER TABLE Parameters 
+ADD COLUMN parameter_id VARCHAR (50);
+
+
+ALTER TABLE Genes  
+ADD COLUMN gene_accession_id VARCHAR (50);
+
+ALTER TABLE Parameters 
+DROP COLUMN name
+
+ALTER TABLE Procedures 
+RENAME COLUMN description TO procedure_description;
+
+ALTER TABLE Procedures
+RENAME COLUMN is_mandatory TO mandatory;
+
+ALTER TABLE Procedures
+ADD COLUMN IMPC_parameter_id VARCHAR (20);
+
+
+ALTER TABLE Phenotype_Scores 
+DROP COLUMN other_statistics
+
+
+
+
+ALTER TABLE Parameters
+ADD UNIQUE (IMPC_parameter_id);
+
+ALTER TABLE Procedures
+ADD CONSTRAINT fk_procedure_impc_param
+FOREIGN KEY (IMPC_parameter_id)
+REFERENCES Parameters(IMPC_parameter_id);
+
+SELECT * FROM Procedures 
+
+
+DESCRIBE Procedures;
+
+ALTER TABLE Procedures 
+RENAME PRIMARY K procedure_id TO IMPC_parameter_origin_id
+
+ALTER TABLE Procedures
+DROP COLUMN isMandatory ;
+
+SHOW CREATE TABLE Procedures;
+
+
+ALTER TABLE Procedures
+CHANGE COLUMN IMPC_parameter_origin_id IMPC_procedure_id INT NOT NULL;
+
+ALTER TABLE Procedures
+MODIFY COLUMN IMPC_procedure_id INT NOT NULL AUTO_INCREMENT;
+
+SET FOREIGN_KEY_CHECKS = 0;
+
+ALTER TABLE Procedures  
+ADD COLUMN IMPC_parameter_origin_id INT NOT NULL;
+
+
+TRUNCATE TABLE Procedures;
+
+
+ALTER TABLE Procedures
+MODIFY COLUMN IMPC_parameter_origin_id VARCHAR(50) NOT NULL;
+
+SET FOREIGN_KEY_CHECKS = 1;
+
+DESCRIBE Genes;
+
+ALTER TABLE Genes
+MODIFY COLUMN gene_id INT NOT NULL AUTO_INCREMENT;
+
+ALTER TABLE Genotypes
+DROP FOREIGN KEY genotypes_ibfk_1;
+
+ALTER TABLE Genotypes
+DROP COLUMN gene_id;
+
+ALTER TABLE Genes
+MODIFY COLUMN parameter_name VARCHAR(200);
+
+ALTER TABLE Genes 
+MODIFY COLUMN gene_id INT NOT NULL;
+
+
+ALTER TABLE Genes
+MODIFY COLUMN gene_
+
+SELECT * FROM Genes
+
+ALTER TABLE Diseases 
+MODIFY COLUMN disease_id INT NOT NULL AUTO_INCREMENT;
+
+ALTER TABLE Diseases
+MODIFY COLUMN disease_name VARCHAR (200);
+
+ALTER TABLE Diseases
+MODIFY COLUMN gene_accession_id VARCHAR(50);
+
+DESCRIBE Diseases
+
+SELECT * FROM Genes;
+
+TRUNCATE TABLE Genes;
+
+DESCRIBE Genes
+
+SELECT gene_accession_id
+FROM Diseases
+WHERE gene_accession_id NOT IN (SELECT gene_accession_id FROM Genes);
+
+# ADD FOREIGN KEY
+
+ALTER TABLE Diseases
+ADD CONSTRAINT fk_diseases_gene
+FOREIGN KEY (gene_accession_id)
+REFERENCES Genes(gene_accession_id)
+ON UPDATE CASCADE
+ON DELETE RESTRICT;
+
+
+# IDENTIFY DUPICATES
+SELECT gene_accession_id, COUNT(*) as count
+FROM Genes
+GROUP BY gene_accession_id
+HAVING count > 1;
+
+#This will store the foreign key linking to Genes.gene_id
+ALTER TABLE Diseases
+ADD COLUMN gene_id INT;
+
+#Populate gene_id in Diseases
+UPDATE Diseases d
+INNER JOIN Genes g
+  ON d.gene_accession_id = g.gene_accession_id
+SET d.gene_id = g.gene_id;
+
+
+#add foregin key constraints
+ALTER TABLE Diseases
+ADD CONSTRAINT fk_diseases_gene
+FOREIGN KEY (gene_id)
+REFERENCES Genes(gene_id)
+ON UPDATE CASCADE
+ON DELETE RESTRICT;
+
+
+CREATE TABLE ParameterGroups (
+    parameter_group_id INT PRIMARY KEY,
+    parameter_group_name VARCHAR(100) NOT NULL,
+    description TEXT
+
+
+
+
+CREATE TABLE Analysis (
+    analysis_key_id INT NOT NULL AUTO_INCREMENT,
+    pvalue VARCHAR(100) NOT NULL,
+    analysis_id VARCHAR(100),
+    PRIMARY KEY (analysis_key_id)
+);
+
+INSERT INTO Analysis (pvalue)
+SELECT pvalue
+FROM Genes;
+
+INSERT INTO Analysis (analysis_id)
+SELECT analysis_id
+FROM Genes;
+
+
+INSERT INTO Analysis (analysis_id)
+SELECT analysis_id
+FROM Genes;
+
+TRUNCATE TABLE Analysis;
+
+INSERT INTO Analysis (pvalue, analysis_id, gene_accession_id )
+SELECT pvalue, analysis_id, gene_accession_id
+FROM Genes;
+
+
+USE DCDM_CW1_GROUP12;
+
+ALTER TABLE Analysis
+ADD COLUMN gene_accession_id VARCHAR(100);
+
+CREATE TABLE MouseCharacteristics (
+    mouse_id INT NOT NULL AUTO_INCREMENT,
+    mouse_strain VARCHAR(100) NOT NULL,
+    mouse_life_stage VARCHAR(100) NOT NULL,
+    PRIMARY KEY (mouse_id)
+);
+
+ALTER TABLE Analysis
+ADD COLUMN mouse_id INT;
+
+ALTER TABLE Analysis
+ADD CONSTRAINT fk_analysis_mouse
+FOREIGN KEY (mouse_id)
+REFERENCES MouseCharacteristics(mouse_id);
+
+
+ALTER TABLE Parameters
+DROP COLUMN parameter_id;
+
+ALTER TABLE Parameters
+RENAME PRIMARY KEY TO parameter_id
+
+CREATE TABLE Parameter_Groups (
+    group_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY, 
+    group_name VARCHAR(50) NOT NULL,
+    `description` VARCHAR(255)
+);
+
+DROP TABLE parameter_groups;
+
+DROP TABLE Phenotypes;
+
+DROP TABLE Phenotype_Scores;
+
+DROP TABLE DCDM_CW1_GROUP12.Genotypes;
+
+ALTER TABLE Parameters
+CHANGE parameter_group_id parameter_id INT NOT NULL;
+
+
+ALTER TABLE Parameters
+ADD COLUMN IMPC_parameter_origin_id VARCHAR (100) NOT NULL;
+
+
+
+
+INSERT INTO Parameter_Groups (group_name, description)
+VALUES
+('Housing & Environment', 'Parameters related to mouse husbandry, caging, diet, and ambient factors.'),
+('Structural Phenotype', 'Parameters capturing all physical and structural measurements including organ weights, dimensions, scores of tissues, bones, skin, and glands.'),
+('Clinical Chemistry/Blood', 'Parameters related to hematology, blood chemistry, and general clinical laboratory tests (e.g., CBC, serum analysis).'),
+('Embryo & Development', 'Parameters related to embryo count, viability, and developmental defects (IMPC_EVO).'),
+('Limb Function & Performance', 'Parameters related to the strength, grip, movement, and functional capacity of the forelimbs and hindlimbs.'),
+('Behavioral & Neurological', 'Parameters related to locomotion, activity, neurological function, memory, and anxiety.'),
+('Cardiovascular & ECG', 'Parameters related to heart function, heart rate, ECG measurements, and overall cardiac activity.'),
+('Other', 'Catch-all group for parameters not fitting the main categories (e.g., General Metadata, QC).');
+
+
+
+
+
+
+
+
+
+
+
