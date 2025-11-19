@@ -94,7 +94,7 @@ load_data_from_csv <- function(include_procedure = TRUE) {
       left_join(procedure_df, by = "impcParameterOrigId", suffix = c("_param", "_proc")) %>%
       select(parameterId, 
              parameter_description = description_param,
-             procedure_name = name_proc,              # ← FIXED: use name_proc not name
+             procedure_name = name_proc,             
              procedure_description = description_proc,
              is_mandatory = isMandatory)
     
