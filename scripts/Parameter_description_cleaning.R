@@ -1,10 +1,15 @@
-```{r}
 library(dplyr)
 library(readr)
 library(stringr) # for str_trim
 
+# Directory path of Where the IMPC_parameter_description.txt is stored
+INPUT_FILE <- "C:/Users/Talhah Zubayer/Documents/DCDM_group12/metadata/IMPC_parameter_description.txt"
+
+# Final clean file directory path
+OUTPUT_FILE <- "C:/Users/Talhah Zubayer/Documents/DCDM_group12/data/processed/IMPC_parameter_description_cleaned.csv"
+
 # Read the file; blanks read as NA automatically
-data <- read_csv("IMPC_parameter_description.txt", show_col_types = FALSE)
+data <- read_csv(INPUT_FILE, show_col_types = FALSE)
 
 # Trim whitespace from 'impcParameterOrigId' and 'parameterId'
 data <- data %>%
@@ -33,7 +38,4 @@ data_clean <- data_clean %>%
   )
 
 # Write out the cleaned data with blanks as "NA"
-write_csv(data_clean, "IMPC_parameter_description_cleaned.csv", na = "NA")
-
-```
-
+write_csv(data_clean, OUTPUT_FILE, na = "NA")

@@ -151,8 +151,8 @@ cleaned_data$pvalue <- suppressWarnings(as.numeric(cleaned_data$pvalue))
 # 2. Value is >= 0 (minimum valid p-value)
 # 3. Value is <= 1 (maximum valid p-value)
 valid_pvalue <- !is.na(cleaned_data$pvalue) & 
-                (cleaned_data$pvalue >= 0) & 
-                (cleaned_data$pvalue <= 1)
+  (cleaned_data$pvalue >= 0) & 
+  (cleaned_data$pvalue <= 1)
 
 valid_rows <- valid_rows & valid_pvalue
 cat(glue("    Invalid: {sum(!valid_pvalue)}\n"))
@@ -168,6 +168,52 @@ removed_rows <- cleaned_data[!valid_rows, ]
 
 cat(glue("Rows passing SOP validation: {nrow(final_cleaned)}\n\n"))
 cat(glue("Rows failing SOP validation: {nrow(removed_rows)}\n\n"))
+
+
+# REMOVE OUTLIERS USING IQR METHOD
+
+cat("Removing outliers using IQR method...\n")
+
+# Identify numeric columns in the cleaned dataset
+numeric_cols <- sapply(final_cleaned, is.numeric)
+
+# Function to flag outliers using IQR method
+# IQR (Interquartile Range) = Q3 - Q1
+# Outliers are values outside: [Q1 - 1.5*IQR, Q3 + 1.5*IQR]
+remove_outliers <- function(x) {
+  Q1 <- quantile(x, 0.25, na.rm = TRUE)
+  Q3 <- quantile(x, 0.75, na.rm = TRUE)
+  IQR_val <- Q3 - Q1
+  # Values within 1.5 * IQR from Q1 and Q3 are kept
+  x >= (Q1 - 1.5 * IQR_val) & x <= (Q3 + 1.5 * IQR_val)
+}
+
+# Initialize a logical vector (all TRUE initially)
+keep_rows <- rep(TRUE, nrow(final_cleaned))
+
+# Apply outlier filter for each numeric column
+for (col in names(final_cleaned)[numeric_cols]) {
+  valid <- remove_outliers(final_cleaned[[col]])
+  keep_rows <- keep_rows & valid
+}
+
+# Record counts before removing outliers
+rows_before_outliers <- nrow(final_cleaned)
+
+# Filter data to remove outliers
+final_cleaned <- final_cleaned[keep_rows, ]
+
+# Calculate and report outliers removed
+outliers_removed <- rows_before_outliers - nrow(final_cleaned)
+cat(glue("Outliers removed: {outliers_removed}\n"))
+cat(glue("Rows after removing outliers: {nrow(final_cleaned)}\n\n"))
+
+
+# CONVERT GENE_ACCESSION_ID TO UPPERCASE
+
+cat("Converting gene_accession_id to uppercase...\n")
+final_cleaned$gene_accession_id <- toupper(final_cleaned$gene_accession_id)
+cat("✓ gene_accession_id converted to uppercase\n\n")
 
 
 # SAVE CLEANED DATA

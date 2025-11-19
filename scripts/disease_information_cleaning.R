@@ -1,11 +1,10 @@
-```{r}
- # Load required libraries
+# Load required libraries
 library(tidyverse)
 library(glue)
 
 # File paths
-INPUT_FILE <- "/Users/sabrinasaidoune/Desktop/Disease_information.txt"
-OUTPUT_FILE <- "/Users/sabrinasaidoune/Desktop/cleaned_disease_information_normalized.csv"
+INPUT_FILE <- "C:/Users/Talhah Zubayer/Documents/DCDM_group12/metadata/Disease_information.txt"
+OUTPUT_FILE <- "C:/Users/Talhah Zubayer/Documents/DCDM_group12/data/processed/Disease_information_cleaned.csv"
 
 # Read tab-separated file
 disease_raw <- read.delim(INPUT_FILE, sep = "\t", header = TRUE, quote = "\"", stringsAsFactors = FALSE)
@@ -49,8 +48,6 @@ write.csv(disease_clean_normalized, OUTPUT_FILE, row.names = FALSE)
 # Verify
 if (file.exists(OUTPUT_FILE)) {
   file_size_mb <- file.info(OUTPUT_FILE)$size / (1024^2)
-  cat(glue("✓ Normalized cleaned data saved: {OUTPUT_FILE}\n"))
+  cat(glue(" Normalized cleaned data saved: {OUTPUT_FILE}\n"))
   cat(glue("  Rows: {nrow(disease_clean_normalized)}, Size: {round(file_size_mb, 2)} MB\n"))
 }
-
-```

@@ -1,30 +1,25 @@
----
-title: "Untitled"
-output: html_document
-date: "2025-11-12"
----
+# Load libraries
+library(dplyr)
+library(readr)
+library(stringr)
+library(tidyr)  # For replace_na function
 
-```{r}
+# Input and output file paths
+INPUT_FILE <- "C:/Users/Talhah Zubayer/Documents/DCDM_group12/metadata/IMPC_procedure.txt"
+INTERMEDIATE_FILE <- "C:/Users/Talhah Zubayer/Documents/DCDM_group12/data/processed/IMPC_procedure.csv"
+OUTPUT_FILE <- "C:/Users/Talhah Zubayer/Documents/DCDM_group12/data/processed/IMPC_procedure_cleaned2.csv"
+
 # Read the comma-separated text file
-data_table <- read.csv("IMPC_procedure.txt", stringsAsFactors = FALSE)
+data_table <- read.csv(INPUT_FILE, stringsAsFactors = FALSE)
 
 # View the first few rows
 head(data_table)
 
 # Save it as a CSV file
-write.csv(data_table, "IMPC_procedure.csv", row.names = FALSE)
-
-
-```
-
-```{r}
-# Load libraries
-library(dplyr)
-library(readr)
-library(stringr)
+write.csv(data_table, INTERMEDIATE_FILE, row.names = FALSE)
 
 # Read CSV
-df <- read_csv("IMPC_procedure.csv")
+df <- read_csv(INTERMEDIATE_FILE)
 
 # Reorder columns: move impcParameterOrigId first
 df <- df %>% select(impcParameterOrigId, everything())
@@ -72,8 +67,5 @@ cat("\nSample of cleaned data:\n")
 print(head(df_clean, 10))
 
 # Save cleaned data to CSV
-output_file <- "IMPC_procedure_cleaned.csv"
-write_csv(df_clean, output_file)
-cat("\nCleaned data saved to:", output_file, "\n")
-```
-
+write_csv(df_clean, OUTPUT_FILE)
+cat("\nCleaned data saved to:", OUTPUT_FILE, "\n")
