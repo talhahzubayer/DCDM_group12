@@ -1,25 +1,18 @@
-# ============================================================================
-# FLEXIBLE DATA LOADER MODULE
-# Switches between CSV files and MySQL database
-# ============================================================================
-
 library(tidyverse)
 library(RMySQL)
 
-# ============================================================================
+
 # CONFIGURATION
-# ============================================================================
 
 # Data source: "csv" or "database"
 DATA_SOURCE <- "csv"  # ← CHANGE THIS TO "database" WHEN READY!
 
 # CSV file paths (update these to match your folder structure)
 CSV_FILES <- list(
-  phenotype = "C:/Users/Talhah Zubayer/Documents/DCDM_group12/data/processed/Temp Files/cleaned_phenotype_analysis_results.csv",
-  disease = "C:/Users/Talhah Zubayer/Documents/DCDM_group12/data/processed/Temp Files/normalised_disease_table.csv",
-  omim = "C:/Users/Talhah Zubayer/Documents/DCDM_group12/data/processed/Temp Files/normalised_omim_table.csv",
-  gene_disease = "C:/Users/Talhah Zubayer/Documents/DCDM_group12/data/processed/Temp Files/normalised_gene_disease_association.csv",
-  parameter = "C:/Users/Talhah Zubayer/Documents/DCDM_group12/data/processed/cleaned_IMPC_parameter_description_keep_blank.csv"
+  phenotype = "C:/Users/Talhah Zubayer/Documents/DCDM_group12/data/processed/clean_table_final_UPPERCASE.csv",
+  disease = "C:/Users/Talhah Zubayer/Documents/DCDM_group12/data/processed/Disease_information_cleaned.csv",
+  parameter = "C:/Users/Talhah Zubayer/Documents/DCDM_group12/data/processed/IMPC_parameter_description_cleaned.csv",
+  procedure = "C:/Users/Talhah Zubayer/Documents/DCDM_group12/data/processed/IMPC_procedure_cleaned.csv"
 )
 
 # Database configuration (fill in when database is ready)
@@ -30,9 +23,8 @@ DB_CONFIG <- list(
   password = "your_password"    # Update when database ready
 )
 
-# ============================================================================
-# HELPER FUNCTION: Parameter Categorization
-# ============================================================================
+
+# HELPER FUNCTION: Parameter Categorisation
 
 categorize_parameter <- function(param_name, param_id) {
   param_lower <- tolower(paste(param_name, param_id, sep = " "))
@@ -56,16 +48,18 @@ categorize_parameter <- function(param_name, param_id) {
   return("Other")
 }
 
-# ============================================================================
-# DATA LOADING FUNCTION: LOAD FROM CSV FILES
-# ============================================================================
 
-load_data_from_csv <- function() {
+# DATA LOADING FUNCTION: LOAD FROM CSV FILES
+
+load_data_from_csv <- function(include_procedure = TRUE) {
   cat("Loading data from CSV files...\n")
   
-  # Check if all files exist
+  # Check if all required files exist
+  required_files <- c("phenotype", "parameter")
+  if (include_procedure) required_files <- c(required_files, "procedure")
+  
   missing_files <- c()
-  for (name in names(CSV_FILES)) {
+  for (name in required_files) {
     if (!file.exists(CSV_FILES[[name]])) {
       missing_files <- c(missing_files, CSV_FILES[[name]])
     }
@@ -75,15 +69,49 @@ load_data_from_csv <- function() {
     stop("Missing CSV files:\n", paste(missing_files, collapse = "\n"))
   }
   
-  # Load phenotype analysis data
+  # Load phenotype analysis data (main data)
   cat("  Loading phenotype analysis data...\n")
   df <- read.csv(CSV_FILES$phenotype, stringsAsFactors = FALSE)
-  
-  # The CSV already has all the data we need in one denormalized table!
-  # Columns: gene_accession_id, gene_symbol, mouse_strain, mouse_life_stage,
-  #          parameter_id, parameter_name, pvalue, analysis_id
-  
   cat(glue::glue("  Loaded {nrow(df)} phenotype records\n"))
+  
+  # Load parameter description file (for linking)
+  cat("  Loading parameter descriptions...\n")
+  param_desc <- read.csv(CSV_FILES$parameter, stringsAsFactors = FALSE)
+  cat(glue::glue("  Loaded {nrow(param_desc)} parameter descriptions\n"))
+  
+  # Load procedure information if requested
+  if (include_procedure) {
+    cat("  Loading procedure information...\n")
+    procedure_df <- read.csv(CSV_FILES$procedure, stringsAsFactors = FALSE)
+    cat(glue::glue("  Loaded {nrow(procedure_df)} procedure records\n"))
+    
+    # Link procedure data to parameter descriptions via impcParameterOrigId
+    # CRITICAL: After left_join with suffix, columns are renamed:
+    #   - name becomes name_param and name_proc
+    #   - description becomes description_param and description_proc
+    #   - isMandatory stays as isMandatory (no duplicate)
+    param_desc_with_procedure <- param_desc %>%
+      left_join(procedure_df, by = "impcParameterOrigId", suffix = c("_param", "_proc")) %>%
+      select(parameterId, 
+             parameter_description = description_param,
+             procedure_name = name_proc,              # ← FIXED: use name_proc not name
+             procedure_description = description_proc,
+             is_mandatory = isMandatory)
+    
+    # Now join with main phenotype data
+    df <- df %>%
+      left_join(param_desc_with_procedure, by = c("parameter_id" = "parameterId"))
+    
+    cat(glue::glue("  Linked procedure info to {sum(!is.na(df$procedure_description))} parameters\n"))
+  }
+  
+  # If procedure info was not loaded, add empty columns for compatibility
+  if (!include_procedure || !"procedure_name" %in% colnames(df)) {
+    cat("  Adding empty procedure columns for compatibility\n")
+    df$procedure_name <- NA_character_
+    df$procedure_description <- NA_character_
+    df$is_mandatory <- NA
+  }
   
   # Add parameter categories
   cat("  Adding parameter categories...\n")
@@ -116,14 +144,17 @@ load_data_from_csv <- function() {
   cat(glue::glue("  Unique genes: {n_distinct(df$gene_symbol)}\n"))
   cat(glue::glue("  Unique parameters: {n_distinct(df$parameter_id)}\n"))
   cat(glue::glue("  Mouse strains: {n_distinct(df$mouse_strain)}\n"))
-  cat(glue::glue("  Life stages: {n_distinct(df$mouse_life_stage)}\n\n"))
+  cat(glue::glue("  Life stages: {n_distinct(df$mouse_life_stage)}\n"))
+  if ("procedure_name" %in% colnames(df)) {
+    cat(glue::glue("  Parameters with procedure info: {sum(!is.na(df$procedure_description))}\n"))
+  }
+  cat("\n")
   
   return(df)
 }
 
-# ============================================================================
+
 # DATA LOADING FUNCTION: LOAD FROM DATABASE
-# ============================================================================
 
 load_data_from_database <- function() {
   cat("Loading data from MySQL database...\n")
@@ -142,8 +173,7 @@ load_data_from_database <- function() {
   
   cat("  Connected to database\n")
   
-  # Query to get all data we need
-  # This recreates the same structure as the CSV file
+  # Enhanced query with procedure information
   query <- "
     SELECT 
       a.analysis_id,
@@ -153,11 +183,16 @@ load_data_from_database <- function() {
       p.parameter_id,
       p.parameter_name,
       p.parameter_group as category,
+      p.parameter_description,
+      proc.procedure_name,
+      proc.procedure_description,
+      proc.is_mandatory,
       a.mouse_strain,
       a.mouse_life_stage
     FROM Analysis a
     INNER JOIN Gene g ON g.gene_accession_id = a.gene_accession_id
     INNER JOIN Parameter p ON p.parameter_id = a.parameter_id
+    LEFT JOIN Procedure proc ON p.impc_parameter_orig_id = proc.impc_parameter_orig_id
   "
   
   cat("  Executing query...\n")
@@ -206,23 +241,24 @@ load_data_from_database <- function() {
   cat(glue::glue("  Unique genes: {n_distinct(df$gene_symbol)}\n"))
   cat(glue::glue("  Unique parameters: {n_distinct(df$parameter_id)}\n"))
   cat(glue::glue("  Mouse strains: {n_distinct(df$mouse_strain)}\n"))
-  cat(glue::glue("  Life stages: {n_distinct(df$mouse_life_stage)}\n\n"))
+  cat(glue::glue("  Life stages: {n_distinct(df$mouse_life_stage)}\n"))
+  cat(glue::glue("  Parameters with procedure info: {sum(!is.na(df$procedure_description))}\n\n"))
   
   return(df)
 }
 
-# ============================================================================
-# MAIN DATA LOADING FUNCTION (SWITCH BETWEEN SOURCES)
-# ============================================================================
 
-load_data <- function(source = DATA_SOURCE) {
+# MAIN DATA LOADING FUNCTION (SWITCH BETWEEN SOURCES)
+
+load_data <- function(source = DATA_SOURCE, include_procedure = TRUE) {
   cat("============================================\n")
-  cat("IMPC DATA LOADER\n")
+  cat("IMPC DATA LOADER (ENHANCED)\n")
   cat("============================================\n")
-  cat(glue::glue("Data source: {toupper(source)}\n\n"))
+  cat(glue::glue("Data source: {toupper(source)}\n"))
+  cat(glue::glue("Include procedure info: {include_procedure}\n\n"))
   
   if (source == "csv") {
-    return(load_data_from_csv())
+    return(load_data_from_csv(include_procedure = include_procedure))
   } else if (source == "database") {
     return(load_data_from_database())
   } else {
@@ -230,29 +266,26 @@ load_data <- function(source = DATA_SOURCE) {
   }
 }
 
-# ============================================================================
-# USAGE EXAMPLES
-# ============================================================================
 
-# Example 1: Load from CSV (default)
+# USAGE EXAMPLES
+# Example 1: Load from CSV with procedure info (default)
 # data <- load_data()
 
-# Example 2: Explicitly specify CSV
-# data <- load_data(source = "csv")
+# Example 2: Load from CSV without procedure info (faster)
+# data <- load_data(include_procedure = FALSE)
 
 # Example 3: Load from database (when ready)
 # data <- load_data(source = "database")
-
-# Example 4: Change default source
-# DATA_SOURCE <- "database"  # Change at top of file
-# data <- load_data()  # Will now use database
 
 cat("============================================\n")
 cat("DATA LOADER MODULE LOADED\n")
 cat("============================================\n")
 cat("Current data source:", toupper(DATA_SOURCE), "\n")
-cat("\nTo change data source:\n")
+cat("Procedure information: ENABLED\n\n")
+cat("To change data source:\n")
 cat("  1. Update DATA_SOURCE variable at top of file\n")
 cat("  2. Or call: load_data(source = 'csv') or load_data(source = 'database')\n\n")
+cat("To disable procedure info:\n")
+cat("  load_data(include_procedure = FALSE)\n\n")
 cat("To use in RShiny:\n")
 cat("  data <- reactive({ load_data() })\n\n")

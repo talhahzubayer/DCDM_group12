@@ -1,7 +1,7 @@
 # ============================================================================
-# IMPC Phenotype Analysis Dashboard - FLEXIBLE VERSION
+# IMPC Phenotype Analysis Dashboard - WITH PROCEDURE INFO
 # Works with BOTH CSV files and MySQL database
-# Just change DATA_SOURCE in data_loader_module.R!
+# Displays procedure information in tooltips and tables
 # ============================================================================
 
 library(shiny)
@@ -62,6 +62,7 @@ ui <- dashboardPage(
       menuItem("Gene Analysis", tabName = "gene_view", icon = icon("dna")),
       menuItem("Phenotype Analysis", tabName = "phenotype_view", icon = icon("chart-bar")),
       menuItem("Gene Clustering", tabName = "clustering_view", icon = icon("project-diagram")),
+      menuItem("Procedure Info", tabName = "procedure_view", icon = icon("table")),
       br(),
       menuItem("About", tabName = "about", icon = icon("info-circle"))
     ),
@@ -82,6 +83,7 @@ ui <- dashboardPage(
         tabName = "gene_view",
         h2("Visualization 1: Gene-Centric Analysis"),
         p("Select genes to view all phenotypes tested and their statistical significance."),
+        p(tags$em("Hover over points to see procedure information!")),
         
         fluidRow(
           column(3,
@@ -97,6 +99,7 @@ ui <- dashboardPage(
               selectInput("gene_category_filter", "Parameter Category:", choices = NULL),
               selectInput("gene_strain_filter", "Mouse Strain:", choices = NULL),
               selectInput("gene_lifestage_filter", "Life Stage:", choices = NULL),
+              checkboxInput("gene_only_mandatory", "Show only mandatory procedures", FALSE),
               numericInput("gene_pvalue_threshold", "P-value Threshold:",
                           value = DEFAULT_PVALUE, min = 0, max = 1, step = 0.01)
             )
@@ -117,6 +120,7 @@ ui <- dashboardPage(
         tabName = "phenotype_view",
         h2("Visualization 2: Phenotype-Centric Analysis"),
         p("Select a phenotype to view all genes tested and their statistical significance."),
+        p(tags$em("Hover over points to see procedure information!")),
         
         fluidRow(
           column(3,
@@ -126,6 +130,7 @@ ui <- dashboardPage(
               selectInput("parameter_select", "Select Parameter:", choices = NULL),
               hr(),
               h4("Filters"),
+              checkboxInput("phenotype_only_mandatory", "Show only mandatory procedures", FALSE),
               numericInput("phenotype_pvalue_threshold", "P-value Threshold:",
                           value = DEFAULT_PVALUE, min = 0, max = 1, step = 0.01)
             )
@@ -154,6 +159,7 @@ ui <- dashboardPage(
               selectInput("cluster_category_filter", "Parameter Category:", choices = NULL),
               selectInput("cluster_strain_filter", "Mouse Strain:", choices = NULL),
               selectInput("cluster_lifestage_filter", "Life Stage:", choices = NULL),
+              checkboxInput("cluster_only_mandatory", "Use only mandatory procedures", FALSE),
               numericInput("cluster_pvalue_threshold", "P-value Threshold:",
                           value = DEFAULT_PVALUE, min = 0, max = 1, step = 0.01),
               sliderInput("k_clusters", "Number of K-means Clusters:",
@@ -176,13 +182,46 @@ ui <- dashboardPage(
         )
       ),
       
+      # Procedure Info Tab (NEW!)
+      tabItem(
+        tabName = "procedure_view",
+        h2("Procedure Information"),
+        p("Browse procedure information linked to parameters."),
+        
+        fluidRow(
+          column(3,
+            wellPanel(
+              h4("Filters"),
+              selectInput("proc_category_filter", "Parameter Category:", choices = NULL),
+              checkboxInput("proc_only_mandatory", "Show only mandatory", FALSE),
+              checkboxInput("proc_only_with_info", "Show only parameters with procedure info", TRUE)
+            )
+          ),
+          column(9,
+            box(width = 12, title = "Parameter-Procedure Mapping",
+                status = "primary", solidHeader = TRUE,
+                DTOutput("procedure_table")),
+            box(width = 12, title = "Statistics",
+                status = "info", solidHeader = TRUE,
+                verbatimTextOutput("procedure_stats"))
+          )
+        )
+      ),
+      
       # About Tab
       tabItem(
         tabName = "about",
         h2("About This Dashboard"),
         box(width = 12,
             h3("IMPC Phenotype Analysis Dashboard"),
-            p("Interactive exploration of IMPC mouse phenotype data."),
+            p("Interactive exploration of IMPC mouse phenotype data with enhanced procedure information."),
+            
+            h4("New Features:"),
+            tags$ul(
+              tags$li(strong("Procedure Information"), " - Tooltips now show procedure names and descriptions"),
+              tags$li(strong("Mandatory Filter"), " - Filter by mandatory/optional procedures"),
+              tags$li(strong("Procedure Tab"), " - Browse complete parameter-procedure mapping")
+            ),
             
             h4("Flexible Data Source:"),
             p("This dashboard can load data from:"),
@@ -202,11 +241,12 @@ ui <- dashboardPage(
             
             h4("Features:"),
             tags$ul(
-              tags$li("Gene-centric visualization"),
-              tags$li("Phenotype-centric visualization"),
+              tags$li("Gene-centric visualization with procedure info"),
+              tags$li("Phenotype-centric visualization with procedure info"),
               tags$li("UMAP clustering analysis"),
               tags$li("Fisher's method for p-value combination"),
-              tags$li("Automated parameter categorization")
+              tags$li("Automated parameter categorization"),
+              tags$li("Procedure information integration")
             ),
             
             h4("Data Statistics:"),
@@ -236,10 +276,15 @@ server <- function(input, output, session) {
   # Display data statistics in About tab
   output$data_stats <- renderUI({
     df <- data()
+    proc_count <- sum(!is.na(df$procedure_name))
+    proc_pct <- round(proc_count / nrow(df) * 100, 1)
+    
     tags$div(
       tags$p(strong("Total Records: "), format(nrow(df), big.mark = ",")),
       tags$p(strong("Unique Genes: "), n_distinct(df$gene_symbol)),
       tags$p(strong("Unique Parameters: "), n_distinct(df$parameter_id)),
+      tags$p(strong("Parameters with Procedure Info: "), 
+             format(proc_count, big.mark = ","), " (", proc_pct, "%)"),
       tags$p(strong("Mouse Strains: "), paste(levels(df$mouse_strain), collapse = ", ")),
       tags$p(strong("Life Stages: "), paste(levels(df$mouse_life_stage), collapse = ", "))
     )
@@ -256,6 +301,7 @@ server <- function(input, output, session) {
     updateSelectInput(session, "gene_category_filter", choices = category_choices)
     updateSelectInput(session, "phenotype_category_filter", choices = category_choices)
     updateSelectInput(session, "cluster_category_filter", choices = category_choices)
+    updateSelectInput(session, "proc_category_filter", choices = category_choices)
     
     strain_choices <- c("All" = "all", sort(unique(as.character(df$mouse_strain))))
     updateSelectInput(session, "gene_strain_filter", choices = strain_choices)
@@ -289,10 +335,11 @@ server <- function(input, output, session) {
     genes[genes != ""]
   })
   
-  # Filter data for gene view
+  # Filter data for gene view (WITH PROCEDURE INFO PRESERVED)
   gene_data <- reactive({
     df <- data()
     
+    # Apply filters first
     custom <- custom_genes()
     if (!is.null(custom) && length(custom) > 0) {
       df <- df[df$gene_symbol %in% custom, ]
@@ -309,17 +356,35 @@ server <- function(input, output, session) {
     if (input$gene_lifestage_filter != "all") {
       df <- df[df$mouse_life_stage == input$gene_lifestage_filter, ]
     }
+    if (input$gene_only_mandatory) {
+      df <- df[!is.na(df$is_mandatory) & df$is_mandatory == TRUE, ]
+    }
     
-    df %>%
+    # Create procedure lookup BEFORE aggregation
+    proc_lookup <- df %>%
+      select(parameter_id, parameter_name, procedure_name, procedure_description, is_mandatory) %>%
+      distinct() %>%
+      group_by(parameter_id) %>%
+      slice(1) %>%
+      ungroup()
+    
+    # Aggregate p-values
+    result <- df %>%
       group_by(gene_symbol, parameter_name, category, parameter_id) %>%
       summarise(
         pvalue = combine_pvalue(pvalue),
         neg_log10_pvalue = -log10(pvalue),
         .groups = 'drop'
       )
+    
+    # Join back procedure info
+    result <- result %>%
+      left_join(proc_lookup, by = c("parameter_id", "parameter_name"))
+    
+    return(result)
   })
   
-  # Gene view plot
+  # Gene view plot (WITH ENHANCED TOOLTIPS)
   output$gene_plot <- renderPlotly({
     df <- gene_data()
     if (nrow(df) == 0) {
@@ -330,13 +395,34 @@ server <- function(input, output, session) {
     
     df$significant <- ifelse(df$pvalue <= input$gene_pvalue_threshold, "Significant", "Not Significant")
     
+    # Create enhanced tooltips with procedure info
+    df$tooltip <- apply(df, 1, function(row) {
+      tooltip_text <- paste0(
+        "<b>Parameter:</b> ", row["parameter_name"],
+        "<br><b>Category:</b> ", row["category"],
+        "<br><b>P-value:</b> ", format(as.numeric(row["pvalue"]), scientific = TRUE, digits = 3)
+      )
+      
+      if (!is.na(row["procedure_name"]) && row["procedure_name"] != "") {
+        tooltip_text <- paste0(tooltip_text,
+                              "<br><b>Procedure:</b> ", row["procedure_name"])
+      }
+      
+      if (!is.na(row["is_mandatory"])) {
+        mandatory_text <- if (row["is_mandatory"] == "TRUE") "Yes" else "No"
+        tooltip_text <- paste0(tooltip_text,
+                              "<br><b>Mandatory:</b> ", mandatory_text)
+      }
+      
+      tooltip_text
+    })
+    
     plot_ly(df, x = ~seq_along(parameter_name), y = ~neg_log10_pvalue,
             type = 'scatter', mode = 'markers',
             marker = list(size = 8, color = ~pvalue, colorscale = 'Viridis',
                          colorbar = list(title = "P-value"),
                          line = list(color = ~ifelse(significant == "Significant", "red", "white"), width = 2)),
-            text = ~paste("Parameter:", parameter_name, "<br>Category:", category,
-                         "<br>P-value:", format(pvalue, scientific = TRUE, digits = 3)),
+            text = ~tooltip,
             hoverinfo = 'text') %>%
       layout(title = "Phenotype Significance for Selected Gene(s)",
              xaxis = list(title = "Parameters", showticklabels = FALSE),
@@ -348,7 +434,7 @@ server <- function(input, output, session) {
                                line = list(color = "red", dash = "dash", width = 2))))
   })
   
-  # Gene view table
+  # Gene view table (WITH PROCEDURE INFO)
   output$gene_table <- renderDT({
     df <- gene_data()
     df_sig <- df[df$pvalue <= input$gene_pvalue_threshold, ]
@@ -360,28 +446,51 @@ server <- function(input, output, session) {
     
     summary_df <- df_sig %>%
       arrange(pvalue) %>%
-      select(Parameter = parameter_name, Category = category, `P-value` = pvalue) %>%
-      mutate(`P-value` = format(`P-value`, scientific = TRUE, digits = 3))
+      select(Parameter = parameter_name, Category = category, 
+             Procedure = procedure_name, Mandatory = is_mandatory,
+             `P-value` = pvalue) %>%
+      mutate(`P-value` = format(`P-value`, scientific = TRUE, digits = 3),
+             Mandatory = ifelse(!is.na(Mandatory), ifelse(Mandatory, "Yes", "No"), "N/A"))
     
     datatable(summary_df, options = list(pageLength = 10, scrollX = TRUE,
-                                         order = list(list(2, 'asc'))), rownames = FALSE)
+                                         order = list(list(4, 'asc'))), rownames = FALSE)
   })
   
-  # Phenotype view data
+  # Phenotype view data (WITH PROCEDURE INFO)
   phenotype_data <- reactive({
     df <- data()
+    
     if (input$parameter_select != "all") {
       df <- df[df$parameter_combined == input$parameter_select, ]
     } else if (input$phenotype_category_filter != "all") {
       df <- df[df$category == input$phenotype_category_filter, ]
     }
     
-    df %>%
-      group_by(gene_symbol, gene_accession_id, parameter_name, mouse_strain) %>%
+    if (input$phenotype_only_mandatory) {
+      df <- df[!is.na(df$is_mandatory) & df$is_mandatory == TRUE, ]
+    }
+    
+    # Create procedure lookup
+    proc_lookup <- df %>%
+      select(parameter_id, procedure_name, procedure_description, is_mandatory) %>%
+      distinct() %>%
+      group_by(parameter_id) %>%
+      slice(1) %>%
+      ungroup()
+    
+    # Aggregate
+    result <- df %>%
+      group_by(gene_symbol, gene_accession_id, parameter_name, parameter_id, mouse_strain) %>%
       summarise(pvalue = combine_pvalue(pvalue), neg_log10_pvalue = -log10(pvalue), .groups = 'drop')
+    
+    # Join back procedure info
+    result <- result %>%
+      left_join(proc_lookup, by = "parameter_id")
+    
+    return(result)
   })
   
-  # Phenotype view plot
+  # Phenotype view plot (WITH ENHANCED TOOLTIPS)
   output$phenotype_plot <- renderPlotly({
     df <- phenotype_data()
     if (nrow(df) == 0) {
@@ -391,13 +500,28 @@ server <- function(input, output, session) {
     
     df$significant <- ifelse(df$pvalue <= input$phenotype_pvalue_threshold, "Significant", "Not Significant")
     
+    # Create enhanced tooltips
+    df$tooltip <- apply(df, 1, function(row) {
+      tooltip_text <- paste0(
+        "<b>Gene:</b> ", row["gene_symbol"],
+        "<br><b>MGI ID:</b> ", row["gene_accession_id"],
+        "<br><b>P-value:</b> ", format(as.numeric(row["pvalue"]), scientific = TRUE, digits = 3)
+      )
+      
+      if (!is.na(row["procedure_name"]) && row["procedure_name"] != "") {
+        tooltip_text <- paste0(tooltip_text,
+                              "<br><b>Procedure:</b> ", row["procedure_name"])
+      }
+      
+      tooltip_text
+    })
+    
     plot_ly(df, x = ~seq_along(gene_symbol), y = ~neg_log10_pvalue,
             type = 'scatter', mode = 'markers',
             marker = list(size = 8, color = ~pvalue, colorscale = 'Plasma',
                          colorbar = list(title = "P-value"),
                          line = list(color = ~ifelse(significant == "Significant", "red", "white"), width = 2)),
-            text = ~paste("Gene:", gene_symbol, "<br>MGI ID:", gene_accession_id,
-                         "<br>P-value:", format(pvalue, scientific = TRUE, digits = 3)),
+            text = ~tooltip,
             hoverinfo = 'text') %>%
       layout(title = "Gene Significance for Selected Phenotype(s)",
              xaxis = list(title = "Genes", showticklabels = FALSE),
@@ -422,11 +546,12 @@ server <- function(input, output, session) {
     summary_df <- df_sig %>%
       arrange(pvalue) %>%
       select(Gene = gene_symbol, `MGI ID` = gene_accession_id,
-             Strain = mouse_strain, `P-value` = pvalue) %>%
+             Strain = mouse_strain, Procedure = procedure_name,
+             `P-value` = pvalue) %>%
       mutate(`P-value` = format(`P-value`, scientific = TRUE, digits = 3))
     
     datatable(summary_df, options = list(pageLength = 10, scrollX = TRUE,
-                                         order = list(list(3, 'asc'))), rownames = FALSE)
+                                         order = list(list(4, 'asc'))), rownames = FALSE)
   })
   
   # Clustering data
@@ -441,6 +566,9 @@ server <- function(input, output, session) {
     }
     if (input$cluster_lifestage_filter != "all") {
       df <- df[df$mouse_life_stage == input$cluster_lifestage_filter, ]
+    }
+    if (input$cluster_only_mandatory) {
+      df <- df[!is.na(df$is_mandatory) & df$is_mandatory == TRUE, ]
     }
     
     df <- df[df$pvalue <= input$cluster_pvalue_threshold, ]
@@ -508,11 +636,69 @@ server <- function(input, output, session) {
     }
   })
   
+  # Procedure Info Tab - Table
+  output$procedure_table <- renderDT({
+    df <- data()
+    
+    # Get unique parameter-procedure mappings
+    proc_df <- df %>%
+      select(parameter_id, parameter_name, category, procedure_name, 
+             procedure_description, is_mandatory) %>%
+      distinct()
+    
+    # Apply filters
+    if (input$proc_category_filter != "all") {
+      proc_df <- proc_df[proc_df$category == input$proc_category_filter, ]
+    }
+    if (input$proc_only_mandatory) {
+      proc_df <- proc_df[!is.na(proc_df$is_mandatory) & proc_df$is_mandatory == TRUE, ]
+    }
+    if (input$proc_only_with_info) {
+      proc_df <- proc_df[!is.na(proc_df$procedure_name), ]
+    }
+    
+    # Format for display
+    display_df <- proc_df %>%
+      select(Parameter = parameter_name, Category = category,
+             Procedure = procedure_name, Description = procedure_description,
+             Mandatory = is_mandatory) %>%
+      mutate(
+        Procedure = ifelse(is.na(Procedure), "N/A", Procedure),
+        Description = ifelse(is.na(Description), "N/A", 
+                           substr(Description, 1, 100)),  # Truncate long descriptions
+        Mandatory = ifelse(is.na(Mandatory), "N/A", ifelse(Mandatory, "Yes", "No"))
+      ) %>%
+      arrange(Category, Parameter)
+    
+    datatable(display_df, options = list(pageLength = 20, scrollX = TRUE), rownames = FALSE)
+  })
+  
+  # Procedure Info Tab - Statistics
+  output$procedure_stats <- renderPrint({
+    df <- data()
+    
+    total_params <- n_distinct(df$parameter_id)
+    params_with_proc <- sum(!is.na(unique(df[!is.na(df$procedure_name), ]$parameter_id)))
+    pct_with_proc <- round(params_with_proc / total_params * 100, 1)
+    
+    mandatory_count <- sum(df$is_mandatory == TRUE, na.rm = TRUE)
+    optional_count <- sum(df$is_mandatory == FALSE, na.rm = TRUE)
+    
+    cat("Procedure Information Statistics\n")
+    cat("================================\n\n")
+    cat("Total unique parameters:", total_params, "\n")
+    cat("Parameters with procedure info:", params_with_proc, "(", pct_with_proc, "%)\n")
+    cat("Parameters without procedure info:", total_params - params_with_proc, "\n\n")
+    cat("Mandatory procedures:", mandatory_count, "\n")
+    cat("Optional procedures:", optional_count, "\n")
+  })
+  
   # Reset filters
   observeEvent(input$reset_cluster, {
     updateSelectInput(session, "cluster_category_filter", selected = "all")
     updateSelectInput(session, "cluster_strain_filter", selected = "all")
     updateSelectInput(session, "cluster_lifestage_filter", selected = "all")
+    updateCheckboxInput(session, "cluster_only_mandatory", value = FALSE)
     updateNumericInput(session, "cluster_pvalue_threshold", value = DEFAULT_PVALUE)
     updateSliderInput(session, "k_clusters", value = 5)
   })
