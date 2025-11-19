@@ -56,4 +56,52 @@ for (file in file_list) {
   # Save the transposed file to the new folder
   write.csv(df_t, file = file.path(transposed_folder, paste0("transposed_", basename(file))), row.names = TRUE)
 }
+# Merge all tables into one big table
+
+```{r}
+# Set your folder path for transposed files
+transposed_folder <- "/Users/sabrinasaidoune/Desktop/Group12/data/phenotype_analysis_results_transposed"
+
+# List all transposed CSV files
+file_list <- list.files(path = transposed_folder, pattern = "*.csv", full.names = TRUE)
+
+# Read all files into a list
+df_list <- lapply(file_list, function(file) {
+  read.csv(file, stringsAsFactors = FALSE)
+})
+
+# Define the correct 8 columns
+expected_cols <- c("gene_accession_id", "gene_symbol", "mouse_strain", 
+                   "mouse_life_stage", "parameter_id", "pvalue", 
+                   "parameter_name", "analysis_id")
+
+# Align all data frames to have these exact columns
+df_list_aligned <- lapply(df_list, function(df) {
+  # Clean up column name spaces
+  names(df) <- trimws(names(df))
+  
+  # Add missing columns as NA
+  missing_cols <- setdiff(expected_cols, names(df))
+  for (col in missing_cols) {
+    df[[col]] <- NA
+  }
+  
+  # Keep only the expected columns (ignore extras)
+  df <- df[expected_cols]
+  
+  return(df)
+})
+
+# Combine all aligned data frames
+combined_data <- do.call(rbind, df_list_aligned)
+
+# Print summary info
+cat("Combined table created with", nrow(combined_data), "rows and", ncol(combined_data), "columns.\n")
+
+# Save to a new CSV file
+write.csv(combined_data, 
+          file = file.path(transposed_folder, "data_table_combined.csv"), 
+          row.names = FALSE)
+
+```
 
