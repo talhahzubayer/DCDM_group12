@@ -348,11 +348,11 @@ server <- function(input, output, session) {
       )
   })
   
-  # Initialize dropdowns
+  # Initialise dropdowns
   observe({
     df <- data()
     
-    cats <- c("All" = "all", sort(unique(as.character(df$category))))
+    cats <- c("All" = "all", names(GROUP_COLORS))
     updateSelectInput(session, "gene_category", choices = cats)
     updateSelectInput(session, "pheno_category", choices = cats)
     updateSelectInput(session, "cluster_category", choices = cats)

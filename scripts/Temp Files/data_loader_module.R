@@ -26,11 +26,11 @@ DB_CONFIG <- list(
 
 # HELPER FUNCTION: Parameter Categorisation
 
-categorize_parameter <- function(param_name, param_id) {
+categorise_parameter <- function(param_name, param_id) {
   param_lower <- tolower(paste(param_name, param_id, sep = " "))
   
   if (grepl("weight|mass|bw|body weight", param_lower)) return("Weight")
-  if (grepl("image|xray|picture", param_lower)) return("Images")
+  if (grepl("x-ray|xray|imaging|fundus|tomography", param_lower)) return("Images")
   if (grepl("brain|neuro|behavior|cognitive|memory|learning|startle|inhibition|locomotor|activity|arousal|vocalization|movement|speed|distance|rearing|mobile|holepoke", param_lower)) return("Brain")
   if (grepl("eye|retina|lens|vision|optic", param_lower)) return("Vision/Eye")
   if (grepl("blood|immune|cell|hemoglobin|platelet|lymph|plasma", param_lower)) return("Blood")
@@ -115,7 +115,7 @@ load_data_from_csv <- function(include_procedure = TRUE) {
   
   # Add parameter categories
   cat("  Adding parameter categories...\n")
-  df$category <- mapply(categorize_parameter, df$parameter_name, df$parameter_id)
+  df$category <- mapply(categorise_parameter, df$parameter_name, df$parameter_id)
   
   # Create combined variables for UI
   df$gene_combined <- paste0(df$gene_symbol, " (", df$gene_accession_id, ")")
@@ -211,7 +211,7 @@ load_data_from_database <- function() {
   # Add categories if not present or NULL
   if (!"category" %in% colnames(df) || all(is.na(df$category))) {
     cat("  Adding parameter categories...\n")
-    df$category <- mapply(categorize_parameter, df$parameter_name, df$parameter_id)
+    df$category <- mapply(categorise_parameter, df$parameter_name, df$parameter_id)
   }
   
   # Create combined variables for UI
