@@ -716,30 +716,70 @@ server <- function(input, output, session) {
   output$cluster_umap <- renderPlotly({
     obj <- cluster_data()
     if (is.null(obj)) {
-      return(plot_ly() %>% add_annotations(text = "No data. Try relaxing filters.", showarrow = FALSE))
+      return(
+        plot_ly() %>%
+          add_annotations(text = "No data. Try relaxing filters.",
+                          showarrow = FALSE)
+      )
     }
     
     df <- obj$df
     
-    p <- plot_ly(df, x = ~x, y = ~y, color = ~cluster, colors = viridis(length(unique(df$cluster))),
-                 type = 'scatter', mode = 'markers',
-                 marker = list(size = ~n_sig * 2,
-                               line = list(color = ~ifelse(is_query, "red", "white"), width = 2)),
-                 text = ~paste("<b>Gene:</b>", gene, "<br><b>Cluster:</b>", cluster,
-                               "<br><b>Sig phenotypes:</b>", n_sig),
-                 hoverinfo = 'text')
+    # Base scatter: all genes coloured by cluster
+    p <- plot_ly(
+      data  = df,
+      x     = ~x,
+      y     = ~y,
+      type  = "scatter",
+      mode  = "markers",
+      color = ~cluster,                      # cluster -> colour
+      colors = "Set1",                       # or viridis if you prefer
+      size  = ~pmin(n_sig, 10),        # dynamic size mapping
+      sizes = c(4, 14),                # min/max size of points
+      marker = list(opacity = 0.8),
+      text = ~paste0(
+        "<b>Gene:</b> ", gene,
+        "<br><b>Cluster:</b> ", cluster,
+        "<br><b>Sig phenotypes:</b> ", n_sig
+      ),
+      hoverinfo = "text"
+    )
     
+    # Optional: highlight query genes on top
     if (input$cluster_highlight_query) {
       query_df <- df[df$is_query, ]
       if (nrow(query_df) > 0) {
+        # thicker red outline, keep fill = cluster colour
         p <- p %>%
-          add_text(data = query_df, x = ~x, y = ~y, text = ~gene,
-                   textposition = "top center", textfont = list(size = 10, color = "red"),
-                   showlegend = FALSE)
+          add_markers(
+            data = query_df,
+            x    = ~x,
+            y    = ~y,
+            marker = list(
+              size = 10,
+              color = "rgba(0,0,0,0)",              # transparent fill
+              line  = list(color = "red", width = 2)
+            ),
+            hoverinfo  = "none",
+            showlegend = FALSE
+          ) %>%
+          add_text(
+            data = query_df,
+            x    = ~x,
+            y    = ~y,
+            text = ~gene,
+            textposition = "top center",
+            textfont = list(size = 10, color = "red"),
+            showlegend = FALSE
+          )
       }
     }
     
-    p %>% layout(xaxis = list(title = "UMAP 1"), yaxis = list(title = "UMAP 2"))
+    p %>%
+      layout(
+        xaxis = list(title = "UMAP 1"),
+        yaxis = list(title = "UMAP 2")
+      )
   })
   
   output$cluster_heatmap <- renderPlot({
