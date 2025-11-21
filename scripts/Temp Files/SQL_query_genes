@@ -1,0 +1,12 @@
+SELECT g.gene_id, g.gene_symbol,
+       p.procedure_name,
+       pa.parameter_name, pg.parameter_group,
+       r.p_value,
+       d.disease_name
+FROM gene g
+JOIN results r ON g.gene_id = r.gene_id
+JOIN parameter pa ON r.parameter_id = pa.parameter_id
+JOIN parameter_group pg ON pa.group_id = pg.group_id
+JOIN procedure p ON pa.procedure_id = p.procedure_id
+LEFT JOIN gene_disease d ON g.gene_id = d.gene_id
+WHERE g.gene_symbol = 'YOUR_QUERY_GENE';
