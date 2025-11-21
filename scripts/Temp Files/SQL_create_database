@@ -58,9 +58,12 @@ CREATE TABLE Procedures (
     IMPC_parameter_id VARCHAR(20) NULL
     IMPC_parameter_origin_id VARCHAR(50) NOT NULL
 );
+# 2. POPULATE TABLES:
+# ALL DATA WAS IMPORTED FROM CLEANED AND NORMALISED DATAFILES. 
+# REFER TO disease_indormation_cleaning.R, data_combining_and_cleanong.R, parameter_description_cleaning.R, procedure_cleaning.R and trasnpose_data.R FOR CLEAN DATA.
+# CLEAN DATA CAN BE FOUND IN DCDM_group12/data/processed.
 
- 
-# 2. Add Foreign Keys
+# 3. Add Foreign Keys
 
 
 ALTER TABLE Analysis
@@ -111,7 +114,7 @@ ADD CONSTRAINT fk_disease
 FOREIGN KEY (disease_id) REFERENCES Diseases(disease_id);
 
 
-# 3. Insert Parameter Groups
+# 4. Insert Parameter Groups
 
 INSERT INTO Parameter_Groups (group_name, description)
 VALUES
@@ -123,6 +126,202 @@ VALUES
 ('Behavioral & Neurological', 'Activity, behavior, neurological function'),
 ('Cardiovascular & ECG', 'Heart function, ECG measurements'),
 ('Other', 'Miscellaneous parameters');
+
+-- Housing & Environment
+UPDATE DCDM_CW1_GROUP12.Parameters p
+JOIN DCDM_CW1_GROUP12.Parameter_Groups pg
+  ON pg.group_name = 'Housing & Environment'
+SET p.group_id = pg.group_id
+WHERE p.group_id IS NULL
+  AND (
+        LOWER(p.IMPC_parameter_id) LIKE 'impc_hou%'
+     OR LOWER(p.parameter_name) LIKE '%housing%'
+     OR LOWER(p.parameter_name) LIKE '%nutrition%'
+     OR LOWER(p.parameter_name) LIKE '%diet%'
+     OR LOWER(p.parameter_name) LIKE '%temperature%'
+     OR LOWER(p.parameter_name) LIKE '%humidity%'
+     OR LOWER(p.parameter_name) LIKE '%light%'
+     OR LOWER(p.parameter_name) LIKE '%cage%'
+     OR LOWER(p.parameter_name) LIKE '%water%'
+  );
+
+
+
+
+-- Structural Phenotype
+UPDATE DCDM_CW1_GROUP12.Parameters p
+JOIN DCDM_CW1_GROUP12.Parameter_Groups pg
+  ON pg.group_name = 'Structural Phenotype'
+SET p.group_id = pg.group_id
+WHERE p.group_id IS NULL
+  AND (
+        LOWER(p.IMPC_parameter_id) LIKE 'impc_owt%'
+     OR LOWER(p.IMPC_parameter_id) LIKE 'impc_his%'
+     OR LOWER(p.IMPC_parameter_id) LIKE 'impc_dxa%'
+     OR LOWER(p.IMPC_parameter_id) LIKE 'impc_bwt%'
+     OR LOWER(p.IMPC_parameter_id) LIKE 'impc_eye%'
+     OR LOWER(p.parameter_name) LIKE '%weight%'
+     OR LOWER(p.parameter_name) LIKE '%severity score%'
+     OR LOWER(p.parameter_name) LIKE '%skin%'
+     OR LOWER(p.parameter_name) LIKE '%coat%'
+     OR LOWER(p.parameter_name) LIKE '%bone%'
+     OR LOWER(p.parameter_name) LIKE '%skeleton%'
+     OR LOWER(p.parameter_name) LIKE '%muscle%'
+     OR LOWER(p.parameter_name) LIKE '%brain%'
+     OR LOWER(p.parameter_name) LIKE '%eye%'
+     OR LOWER(p.parameter_name) LIKE '%heart%'
+     OR LOWER(p.parameter_name) LIKE '%lung%'
+     OR LOWER(p.parameter_name) LIKE '%liver%'
+     OR LOWER(p.parameter_name) LIKE '%spleen%'
+     OR LOWER(p.parameter_name) LIKE '%kidney%'
+     OR LOWER(p.parameter_name) LIKE '%stomach%'
+     OR LOWER(p.parameter_name) LIKE '%intestine%'
+     OR LOWER(p.parameter_name) LIKE '%pancreas%'
+     OR LOWER(p.parameter_name) LIKE '%thyroid%'
+     OR LOWER(p.parameter_name) LIKE '%adrenal%'
+     OR LOWER(p.parameter_name) LIKE '%pituitary%'
+     OR LOWER(p.parameter_name) LIKE '%thymus%'
+     OR LOWER(p.parameter_name) LIKE '%gland%'
+     OR LOWER(p.parameter_name) LIKE '%testis%'
+     OR LOWER(p.parameter_name) LIKE '%ovary%'
+     OR LOWER(p.parameter_name) LIKE '%uterus%'
+     OR LOWER(p.parameter_name) LIKE '%bladder%'
+     OR LOWER(p.parameter_name) LIKE '%epididymis%'
+     OR LOWER(p.parameter_name) LIKE '%prostate%'
+     OR LOWER(p.parameter_name) LIKE '%seminal vesicle%'
+     OR LOWER(p.parameter_name) LIKE '%penis%'
+     OR LOWER(p.parameter_name) LIKE '%dental%'
+     OR LOWER(p.parameter_name) LIKE '%tooth%'
+     OR LOWER(p.parameter_name) LIKE '%anatomical%'
+     OR LOWER(p.parameter_name) LIKE '%structure%'
+     OR LOWER(p.parameter_name) LIKE '%length%'
+     OR LOWER(p.parameter_name) LIKE '%thickness%'
+     OR LOWER(p.parameter_name) LIKE '%size%'
+     OR LOWER(p.parameter_name) LIKE '%dimension%'
+     OR LOWER(p.parameter_name) LIKE '%morphology%'
+     OR LOWER(p.parameter_name) LIKE '%composition%'
+  );
+
+
+-- Clinical Chemistry/Blood
+UPDATE DCDM_CW1_GROUP12.Parameters p
+JOIN DCDM_CW1_GROUP12.Parameter_Groups pg
+  ON pg.group_name = 'Clinical Chemistry/Blood'
+SET p.group_id = pg.group_id
+WHERE p.group_id IS NULL
+  AND (
+        LOWER(p.IMPC_parameter_id) LIKE 'impc_cbc%'
+     OR LOWER(p.IMPC_parameter_id) LIKE 'impc_cld%'
+     OR LOWER(p.parameter_name) LIKE '%blood%'
+     OR LOWER(p.parameter_name) LIKE '%plasma%'
+     OR LOWER(p.parameter_name) LIKE '%serum%'
+     OR LOWER(p.parameter_name) LIKE '%whole blood%'
+     OR LOWER(p.parameter_name) LIKE '%hemoglobin%'
+     OR LOWER(p.parameter_name) LIKE '%lymphocyte%'
+     OR LOWER(p.parameter_name) LIKE '%neutrophil%'
+     OR LOWER(p.parameter_name) LIKE '%erythrocyte%'
+     OR LOWER(p.parameter_name) LIKE '%platelet%'
+     OR LOWER(p.parameter_name) LIKE '%leukocyte%'
+     OR LOWER(p.parameter_name) LIKE '%glucose%'
+     OR LOWER(p.parameter_name) LIKE '%cholesterol%'
+     OR LOWER(p.parameter_name) LIKE '%protein%'
+     OR LOWER(p.parameter_name) LIKE '%acid%'
+     OR LOWER(p.parameter_name) LIKE '%hormone%'
+     OR LOWER(p.parameter_name) LIKE '%immunoglobulin%'
+     OR LOWER(p.parameter_name) LIKE '%assay%'
+     OR LOWER(p.parameter_name) LIKE '%bilirubin%'
+     OR LOWER(p.parameter_name) LIKE '%alt%'
+     OR LOWER(p.parameter_name) LIKE '%enzyme%'
+     OR LOWER(p.parameter_name) LIKE '%chemistry%'
+     OR LOWER(p.parameter_name) LIKE '%metabolite%'
+  );
+
+
+-- Embryo & Development
+UPDATE DCDM_CW1_GROUP12.Parameters p
+JOIN DCDM_CW1_GROUP12.Parameter_Groups pg
+  ON pg.group_name = 'Embryo & Development'
+SET p.group_id = pg.group_id
+WHERE p.group_id IS NULL
+  AND (
+        LOWER(p.IMPC_parameter_id) LIKE 'impc_evo%'
+     OR LOWER(p.parameter_name) LIKE '%embryo%'
+     OR LOWER(p.parameter_name) LIKE '%placenta%'
+     OR LOWER(p.parameter_name) LIKE '%fetus%'
+     OR LOWER(p.parameter_name) LIKE '%development%'
+     OR LOWER(p.parameter_name) LIKE '%viability%'
+     OR LOWER(p.parameter_name) LIKE '%dead%'
+     OR LOWER(p.parameter_name) LIKE '%stillborn%'
+     OR LOWER(p.parameter_name) LIKE '%gestation%'
+     OR LOWER(p.parameter_name) LIKE '%umbilic%'
+     OR LOWER(p.parameter_name) LIKE '%yolk sac%'
+     OR LOWER(p.parameter_name) LIKE '%defect%'
+     OR LOWER(p.parameter_name) LIKE '%anomaly%'
+  );
+
+-- Limb Function & Performance
+UPDATE DCDM_CW1_GROUP12.Parameters p
+JOIN DCDM_CW1_GROUP12.Parameter_Groups pg
+  ON pg.group_name = 'Limb Function & Performance'
+SET p.group_id = pg.group_id
+WHERE p.group_id IS NULL
+  AND (
+        LOWER(p.IMPC_parameter_id) LIKE 'impc_grs%'
+     OR LOWER(p.IMPC_parameter_id) LIKE 'impc_rot%'
+     OR LOWER(p.parameter_name) LIKE '%limb%'
+     OR LOWER(p.parameter_name) LIKE '%forelimb%'
+     OR LOWER(p.parameter_name) LIKE '%hindlimb%'
+     OR LOWER(p.parameter_name) LIKE '%grip%'
+     OR LOWER(p.parameter_name) LIKE '%paw%'
+     OR LOWER(p.parameter_name) LIKE '%digit%'
+  );
+
+-- Behavioral & Neurological
+UPDATE DCDM_CW1_GROUP12.Parameters p
+JOIN DCDM_CW1_GROUP12.Parameter_Groups pg
+  ON pg.group_name = 'Behavioral & Neurological'
+SET p.group_id = pg.group_id
+WHERE p.group_id IS NULL
+  AND (
+        LOWER(p.IMPC_parameter_id) LIKE 'impc_oft%'
+     OR LOWER(p.IMPC_parameter_id) LIKE 'impc_aas%'
+     OR LOWER(p.IMPC_parameter_id) LIKE 'impc_ecs%'
+     OR LOWER(p.IMPC_parameter_id) LIKE 'impc_het%'
+     OR LOWER(p.parameter_name) LIKE '%behavior%'
+     OR LOWER(p.parameter_name) LIKE '%activity%'
+     OR LOWER(p.parameter_name) LIKE '%locomotor%'
+     OR LOWER(p.parameter_name) LIKE '%anxiety%'
+     OR LOWER(p.parameter_name) LIKE '%sleep%'
+     OR LOWER(p.parameter_name) LIKE '%startle%'
+     OR LOWER(p.parameter_name) LIKE '%memory%'
+     OR LOWER(p.parameter_name) LIKE '%neurological%'
+     OR LOWER(p.parameter_name) LIKE '%brainwave%'
+     OR LOWER(p.parameter_name) LIKE '%eeg%'
+  );
+
+-- Cardiovascular & ECG
+UPDATE DCDM_CW1_GROUP12.Parameters p
+JOIN DCDM_CW1_GROUP12.Parameter_Groups pg
+  ON pg.group_name = 'Cardiovascular & ECG'
+SET p.group_id = pg.group_id
+WHERE p.group_id IS NULL
+  AND (
+        LOWER(p.IMPC_parameter_id) LIKE 'impc_ecg%'
+     OR LOWER(p.parameter_name) LIKE '%ecg%'
+     OR LOWER(p.parameter_name) LIKE '%heart rate%'
+     OR LOWER(p.parameter_name) LIKE '%cardiac%'
+     OR LOWER(p.parameter_name) LIKE '%electrocardiogram%'
+     OR LOWER(p.parameter_name) LIKE '%blood pressure%'
+  );
+
+-- Step 2: Assign remaining unmatched rows to "Other"
+UPDATE DCDM_CW1_GROUP12.Parameters p
+JOIN DCDM_CW1_GROUP12.Parameter_Groups pg
+  ON pg.group_name = 'Other'
+SET p.group_id = pg.group_id
+WHERE p.group_id IS NULL;
+
+
 
 -- Assuming parameter_id is already populated in Analysis:
 UPDATE Analysis a
