@@ -47,3 +47,19 @@ FROM Genes G
 LEFT JOIN Analysis A ON G.gene_id = A.gene_id
 LEFT JOIN Parameters P ON A.parameter_id = P.parameter_id
 WHERE G.gene_symbol = 'Smarcd3';
+
+
+UPDATED:
+# This query looks up the gene Smarcd3 in the Genes table and then pulls in any related analysis results and parameter descriptions by 
+matching gene_id and parameter_id. It uses LEFT JOINs, so the Smarcd3 gene will still appear even if no matching 
+analysis or parameter data exists—those fields will simply show up as NULL.
+
+SELECT G.gene_symbol,
+       G.gene_accession_id,
+       A.analysis_key_id,
+       A.pvalue AS analysis_pvalue,
+       P.parameter_description
+FROM Genes G
+LEFT JOIN Analysis A ON G.gene_id = A.gene_id
+LEFT JOIN Parameters P ON A.parameter_id = P.parameter_id
+WHERE G.gene_symbol = 'Smarcd3';
