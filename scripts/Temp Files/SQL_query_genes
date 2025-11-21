@@ -1,12 +1,30 @@
-SELECT g.gene_id, g.gene_symbol,
-       p.procedure_name,
-       pa.parameter_name, pg.parameter_group,
-       r.p_value,
-       d.disease_name
-FROM gene g
-JOIN results r ON g.gene_id = r.gene_id
-JOIN parameter pa ON r.parameter_id = pa.parameter_id
-JOIN parameter_group pg ON pa.group_id = pg.group_id
-JOIN procedure p ON pa.procedure_id = p.procedure_id
-LEFT JOIN gene_disease d ON g.gene_id = d.gene_id
-WHERE g.gene_symbol = 'YOUR_QUERY_GENE';
+-- ----------------------------------------------------------------------
+-- Query 1: Basic Retrieval of Gene Details
+-- Purpose: Get all columns (gene_id, gene_symbol, accession_id, etc.) 
+--          for the gene 'Smarcd3' from the Genes table.
+-- ----------------------------------------------------------------------
+SELECT 
+    *
+FROM 
+    Genes
+WHERE 
+    gene_symbol = 'Smarcd3';
+
+-- ----------------------------------------------------------------------
+-- Query 2: Retrieve Gene Details and Associated Analysis Results
+-- Purpose: Join the Genes table with the Analysis table to see all 
+--          experimental/statistical data (like pvalue and analysis_key_id)
+--          associated with 'Smarcd3'.
+-- ----------------------------------------------------------------------
+SELECT
+    G.gene_symbol,
+    G.gene_accession_id,
+    A.analysis_key_id,
+    A.pvalue AS analysis_pvalue,
+    A.parameter_id
+FROM
+    Genes G
+JOIN
+    Analysis A ON G.gene_id = A.gene_id
+WHERE
+    G.gene_symbol = 'Smarcd3';
