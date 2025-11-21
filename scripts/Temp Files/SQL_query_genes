@@ -63,3 +63,35 @@ FROM Genes G
 LEFT JOIN Analysis A ON G.gene_id = A.gene_id
 LEFT JOIN Parameters P ON A.parameter_id = P.parameter_id
 WHERE G.gene_symbol = 'Smarcd3';
+
+SELECT G.gene_symbol,
+       G.gene_accession_id,
+       A.analysis_key_id,
+       A.pvalue AS analysis_pvalue,
+       P.parameter_description
+FROM Genes G
+LEFT JOIN Analysis A ON G.gene_id = A.gene_id
+LEFT JOIN Parameters P ON A.parameter_id = P.parameter_id
+WHERE G.gene_symbol = 'Ppp3cc';
+
+SELECT G.gene_symbol,
+       G.gene_accession_id,
+       A.analysis_key_id,
+       A.pvalue AS analysis_pvalue,
+       P.parameter_description
+FROM Genes G
+LEFT JOIN Analysis A ON G.gene_id = A.gene_id
+LEFT JOIN Parameters P ON A.parameter_id = P.parameter_id
+WHERE G.gene_symbol = 'Rab12';
+
+
+SELECT G.gene_symbol,
+       G.gene_accession_id,
+       A.analysis_key_id,
+       A.pvalue AS analysis_pvalue,
+       P.parameter_description
+FROM Genes G
+LEFT JOIN Analysis A ON G.gene_id = A.gene_id
+LEFT JOIN Parameters P ON A.parameter_id = P.parameter_id
+WHERE G.gene_symbol = 'Klhl33';
+
