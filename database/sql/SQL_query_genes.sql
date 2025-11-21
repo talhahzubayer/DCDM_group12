@@ -95,3 +95,9 @@ LEFT JOIN Analysis A ON G.gene_id = A.gene_id
 LEFT JOIN Parameters P ON A.parameter_id = P.parameter_id
 WHERE G.gene_symbol = 'Klhl33';
 
+
+SELECT *
+FROM Analysis
+WHERE gene_id IN (SELECT gene_id FROM Genes WHERE gene_symbol = 'Klhl33');
+
+
