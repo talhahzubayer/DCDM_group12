@@ -77,6 +77,22 @@ ALTER TABLE Analysis
 ADD CONSTRAINT fk_analysis_parameter
 FOREIGN KEY (parameter_id) REFERENCES Parameters(parameter_id);
 
+INSERT INTO Analysis (pvalue, analysis_id, gene_accession_id)
+SELECT pvalue, analysis_id, gene_accession_id
+FROM Genes;
+
+
+-- Link Analysis to Genes by gene_accession_id
+UPDATE Analysis a
+JOIN Genes g ON a.gene_accession_id = g.gene_accession_id
+SET a.gene_id = g.gene_id;
+
+-- Link Analysis to MouseCharacteristics
+UPDATE Analysis a
+JOIN MouseCharacteristics m ON a.mouse_strain = m.mouse_strain
+SET a.mouse_id = m.mouse_id;
+
+
 ALTER TABLE Parameters
 ADD CONSTRAINT fk_group
 FOREIGN KEY (group_id) REFERENCES Parameter_Groups(group_id)
@@ -93,6 +109,7 @@ ADD CONSTRAINT fk_gene
 FOREIGN KEY (gene_id) REFERENCES Genes(gene_id),
 ADD CONSTRAINT fk_disease
 FOREIGN KEY (disease_id) REFERENCES Diseases(disease_id);
+
 
 # 3. Insert Parameter Groups
 
@@ -112,31 +129,12 @@ UPDATE Analysis a
 JOIN Parameters p ON a.parameter_id = p.parameter_id
 SET a.IMPC_parameter_id = p.IMPC_parameter_id;
 
-# 4. Populate MouseCharacteristics from Genes
+-- Populate MouseCharacteristics from Genes
 
 INSERT INTO MouseCharacteristics (mouse_strain, mouse_life_stage)
 SELECT DISTINCT mouse_strain, mouse_life_stage
 FROM Genes;
 
 
--- 5️⃣ Populate Analysis from Genes
--- ===============================================
 
-INSERT INTO Analysis (pvalue, analysis_id, gene_accession_id)
-SELECT pvalue, analysis_id, gene_accession_id
-FROM Genes;
-
-
--- Link Analysis to Genes by gene_accession_id
-UPDATE Analysis a
-JOIN Genes g ON a.gene_accession_id = g.gene_accession_id
-SET a.gene_id = g.gene_id;
-
--- Link Analysis to MouseCharacteristics
-UPDATE Analysis a
-JOIN MouseCharacteristics m ON a.mouse_strain = m.mouse_strain
-SET a.mouse_id = m.mouse_id;
-
-
-
-
+I
