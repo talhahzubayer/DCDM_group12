@@ -1,8 +1,3 @@
-# ============================================================================
-# IMPC Dashboard - Requirements-Focused (Group 12)
-# Designed to hit every line of the coursework brief
-# ============================================================================
-
 library(shiny)
 library(shinydashboard)
 library(tidyverse)
@@ -12,918 +7,925 @@ library(umap)
 library(metap)
 library(pheatmap)
 library(viridis)
+library(RColorBrewer)
 
-# ============================================================================
-# DATA LOADING
-# ============================================================================
 
+# LOAD DATA MODULE
+
+# Source the flexible data loader
 source("data_loader_module.R")
 
-# ============================================================================
+
 # CONFIGURATION
-# ============================================================================
 
-QUERY_GENES <- c("Smarcd3", "Ppp3cc", "Rab12", "Klhl33")
-DEFAULT_THRESHOLD <- 0.05
+DEFAULT_PVALUE <- 0.05
 
+# Color palette for parameter groups
 GROUP_COLORS <- c(
   'Weight' = '#ff1493', 'Images' = '#dda0dd', 'Brain' = '#00bfff',
   'Blood' = '#ff0000', 'Vision/Eye' = '#ffff00', 'Cardiovascular' = '#8b0000',
   'Metabolic' = '#ff4500', 'Respiratory' = '#00fa9a', 'Muscular' = '#4169e1',
   'Reproductive' = '#ff00ff', 'Coat/Skin' = '#ffa500', 'Biochemical' = '#00ffff',
   'Equipment' = '#f0e68c', 'Housing' = '#deb887', 'Conditions' = '#e9967a',
-  'Other' = '#696969'
+  'Other' = '#696969', 'Non-significant' = 'gray86'
 )
 
-# ============================================================================
-# HELPER FUNCTIONS
-# ============================================================================
 
+# HELPER FUNCTIONS
+
+# Fisher's method for p-value combination
 combine_pvalue <- function(pvals) {
   pvals[pvals == 0] <- 1e-10
   if (length(pvals) < 2) return(pvals[1])
   else return(sumlog(pvals)$p)
 }
 
-# ============================================================================
-# UI
-# ============================================================================
+
+# USER INTERFACE
 
 ui <- dashboardPage(
-  dashboardHeader(title = "IMPC Dashboard"),
+  dashboardHeader(title = "IMPC Dashboard - Group 12"),
   
   dashboardSidebar(
     sidebarMenu(
-      menuItem("Overview", tabName = "overview", icon = icon("home")),
-      menuItem("Gene Analysis", tabName = "gene", icon = icon("dna")), 
-               # badgeLabel = "Req 1", badgeColor = "green"),
-      menuItem("Phenotype Analysis", tabName = "phenotype", icon = icon("chart-bar")),
-               # badgeLabel = "Req 2", badgeColor = "green"),
-      menuItem("Gene Clustering", tabName = "clustering", icon = icon("project-diagram")),
-               # badgeLabel = "Req 3", badgeColor = "green"),
-      menuItem("Four Query Genes", tabName = "query_genes", icon = icon("star"))
-               # badgeLabel = "Req 4", badgeColor = "green")
+      menuItem("Gene Analysis", tabName = "gene_view", icon = icon("dna")),
+      menuItem("Bubble Chart", tabName = "bubble_view", icon = icon("circle")),
+      menuItem("Phenotype Analysis", tabName = "phenotype_view", icon = icon("chart-bar")),
+      menuItem("Gene Clustering", tabName = "clustering_view", icon = icon("project-diagram")),
+      menuItem("Procedure Info", tabName = "procedure_view", icon = icon("table")),
+      menuItem("Disease Associations", tabName = "disease_view", icon = icon("notes-medical")),
+      br(),
+      menuItem("About", tabName = "about", icon = icon("info-circle"))
+    ),
+    
+    # Data source indicator
+    tags$div(
+      style = "position: fixed; bottom: 10px; left: 10px; background: #222; padding: 10px; border-radius: 5px; color: white; font-size: 10px;",
+      tags$strong("Data Source:"),
+      tags$br(),
+      textOutput("data_source_indicator", inline = TRUE)
     )
   ),
   
   dashboardBody(
     tabItems(
-      
-      # =====================================================================
-      # OVERVIEW TAB - Parameter Space Reduction
-      # =====================================================================
+      # Gene Analysis Tab
       tabItem(
-        tabName = "overview",
-        h2("Overview: Parameter Space Reduction"),
-        
-        fluidRow(
-          valueBoxOutput("total_genes"),
-          valueBoxOutput("total_parameters"),
-          valueBoxOutput("total_significant")
-        ),
-        
-        fluidRow(
-          box(width = 6, title = "Parameters per Group",
-              status = "primary", solidHeader = TRUE,
-              plotlyOutput("overview_params")),
-          box(width = 6, title = "Significant Associations per Group",
-              status = "success", solidHeader = TRUE,
-              plotlyOutput("overview_sig"))
-        ),
-        
-        fluidRow(
-          box(width = 12, title = "Parameter Groups Summary",
-              status = "info", solidHeader = TRUE,
-              DTOutput("overview_table"))
-        )
-      ),
-      
-      # =====================================================================
-      # GENE ANALYSIS - Requirement 1
-      # =====================================================================
-      tabItem(
-        tabName = "gene",
-        h2("Requirement 1: Gene-Centric visualisation"),
-        p(strong("Purpose:"), " Select a knockout mouse and visualize statistical scores of all phenotypes tested. 
-          Shows which phenotypes are significantly affected by the gene knockout."),
+        tabName = "gene_view",
+        h2("Visualisation 1: Gene-Centric Analysis"),
+        p("Select genes to view all phenotypes tested and their statistical significance."),
+        p(tags$em("Hover over points to see procedure information!")),
         
         fluidRow(
           column(3,
-                 wellPanel(
-                   h4("Gene Selection"),
-                   selectInput("gene_select", "Select Gene:", choices = NULL),
-                   textAreaInput("gene_custom", "Or paste gene list (one per line):",
-                                 value = paste(QUERY_GENES, collapse = "\n"),
-                                 rows = 4, placeholder = "Gene symbols"),
-                   hr(),
-                   h4("Filters"),
-                   selectInput("gene_category", "Parameter Group:", choices = NULL),
-                   selectInput("gene_strain", "Strain:", choices = NULL),
-                   selectInput("gene_lifestage", "Life Stage:", choices = NULL),
-                   hr(),
-                   sliderInput("gene_pvalue", "P-value Threshold:",
-                               min = 0.001, max = 0.1, value = 0.05, step = 0.001),
-                   checkboxInput("gene_fdr", "Use FDR correction", value = FALSE)
-                 )
+            wellPanel(
+              h4("Gene Selection"),
+              selectInput("gene_select", "Select Gene:", choices = NULL),
+              textAreaInput("custom_genes",
+                           "Or paste custom gene list (one per line):",
+                           rows = 4,
+                           placeholder = "Smarcd3\nPpp3cc\nRab12\nKlhl33"),
+              hr(),
+              h4("Filters"),
+              selectInput("gene_category_filter", "Parameter Category:", choices = NULL),
+              selectInput("gene_strain_filter", "Mouse Strain:", choices = NULL),
+              selectInput("gene_lifestage_filter", "Life Stage:", choices = NULL),
+              checkboxInput("gene_only_mandatory", "Only Mandatory Procedures", value = FALSE),
+              hr(),
+              h4("P-value Options"),
+              sliderInput("gene_pvalue_threshold", "P-value Threshold:",
+                         min = 0.001, max = 0.1, value = 0.05, step = 0.001),
+              checkboxInput("gene_use_fdr", "Use FDR-adjusted p-values", value = FALSE)
+            )
           ),
-          
           column(9,
-                 box(width = 12, title = "Phenotype Significance Plot",
-                     status = "primary", solidHeader = TRUE,
-                     plotlyOutput("gene_plot", height = "500px")),
-                 
-                 box(width = 12, title = "Significant Phenotypes Table",
-                     status = "info", solidHeader = TRUE,
-                     p(strong("Columns show:"), " Parameter name, Parameter group, P-value, Disease link, Procedure"),
-                     DTOutput("gene_table"))
+            box(width = 12, title = "Gene Phenotype Plot",
+                status = "primary", solidHeader = TRUE,
+                plotlyOutput("gene_plot", height = "500px")),
+            box(width = 12, title = "Significant Phenotypes",
+                status = "info", solidHeader = TRUE,
+                DTOutput("gene_table"))
           )
         )
       ),
       
-      # =====================================================================
-      # PHENOTYPE ANALYSIS - Requirement 2
-      # =====================================================================
+      # Bubble Chart Tab
       tabItem(
-        tabName = "phenotype",
-        h2("Requirement 2: Phenotype-Centric visualisation"),
-        p(strong("Purpose:"), " Select a phenotype and visualize statistical scores of all knockout mice. 
-          Shows which genes are significantly associated with that phenotype."),
+        tabName = "bubble_view",
+        h2("Bubble Chart: Gene Phenotype Significance"),
+        p("Visualize the significance of multiple parameters for a selected gene."),
+        p(tags$em("Bubble size is proportional to significance. Larger bubbles = more significant.")),
         
         fluidRow(
           column(3,
-                 wellPanel(
-                   h4("Phenotype Selection"),
-                   selectInput("pheno_category", "Parameter Group:", choices = NULL),
-                   selectInput("pheno_parameter", "Select Parameter:", choices = NULL),
-                   hr(),
-                   h4("Parameter Details"),
-                   uiOutput("pheno_details"),
-                   hr(),
-                   sliderInput("pheno_pvalue", "P-value Threshold:",
-                               min = 0.001, max = 0.1, value = 0.05, step = 0.001),
-                   checkboxInput("pheno_fdr", "Use FDR correction", value = FALSE),
-                   checkboxInput("pheno_highlight_disease", "Highlight disease-linked genes", value = TRUE)
-                 )
+            wellPanel(
+              h4("Gene Selection"),
+              selectInput("bubble_gene_select", "Select Gene:", choices = NULL),
+              hr(),
+              h4("Display Options"),
+              sliderInput("bubble_pvalue_threshold", "P-value Threshold:",
+                         min = 0.001, max = 0.1, value = 0.05, step = 0.001),
+              checkboxInput("bubble_use_fdr", "Use FDR-adjusted p-values", value = FALSE),
+              selectInput("bubble_category_filter", "Parameter Category:", choices = NULL)
+            )
           ),
-          
           column(9,
-                 box(width = 12, title = "Gene Significance Plot",
-                     status = "primary", solidHeader = TRUE,
-                     plotlyOutput("pheno_plot", height = "500px")),
-                 
-                 box(width = 12, title = "Significant Genes Table",
-                     status = "info", solidHeader = TRUE,
-                     p(strong("Columns show:"), " Gene symbol, MGI ID, P-value, Number of diseases linked, Top disease"),
-                     DTOutput("pheno_table"))
+            box(width = 12, title = "Bubble Chart",
+                status = "primary", solidHeader = TRUE,
+                plotlyOutput("bubble_chart", height = "600px")),
+            box(width = 12, title = "Chart Explanation",
+                status = "info", solidHeader = TRUE,
+                p("This bubble chart shows:"),
+                tags$ul(
+                  tags$li(strong("Y-axis:"), " Transformed p-value (higher = more significant)"),
+                  tags$li(strong("Bubble size:"), " Proportional to significance"),
+                  tags$li(strong("Color:"), " Blue = significant, Grey = non-significant"),
+                  tags$li(strong("Transformation:"), " (1 - p-value)^8 for better Visualisation")
+                ))
           )
         )
       ),
       
-      # =====================================================================
-      # CLUSTERING - Requirement 3
-      # =====================================================================
+      # Phenotype Analysis Tab
       tabItem(
-        tabName = "clustering",
-        h2("Requirement 3: Gene Clustering Based on Phenotype Profiles"),
-        p(strong("Purpose:"), " Identify clusters of genes with similar phenotype scores. 
-          Genes in the same cluster have similar biological effects."),
+        tabName = "phenotype_view",
+        h2("Visualisation 2: Phenotype-Centric Analysis"),
+        p("Select phenotypes to see which genes are significantly associated."),
+        p(tags$em("Hover over points to see procedure information!")),
         
         fluidRow(
           column(3,
-                 wellPanel(
-                   h4("Clustering Settings"),
-                   sliderInput("cluster_k", "Number of Clusters:",
-                               min = 2, max = 10, value = 4, step = 1),
-                   hr(),
-                   h4("Filters"),
-                   selectInput("cluster_category", "Parameter Group:", choices = NULL),
-                   selectInput("cluster_strain", "Strain:", choices = NULL),
-                   selectInput("cluster_lifestage", "Life Stage:", choices = NULL),
-                   hr(),
-                   sliderInput("cluster_pvalue", "P-value Threshold:",
-                               min = 0.001, max = 0.1, value = 0.05, step = 0.001),
-                   checkboxInput("cluster_fdr", "Use FDR correction", value = FALSE),
-                   hr(),
-                   checkboxInput("cluster_highlight_query", "Highlight query genes", value = TRUE)
-                 )
+            wellPanel(
+              h4("Phenotype Selection"),
+              selectInput("phenotype_category_filter", "Parameter Category:", choices = NULL),
+              selectInput("parameter_select", "Select Parameter:", choices = NULL),
+              hr(),
+              h4("P-value Options"),
+              sliderInput("phenotype_pvalue_threshold", "P-value Threshold:",
+                         min = 0.001, max = 0.1, value = 0.05, step = 0.001),
+              checkboxInput("phenotype_use_fdr", "Use FDR-adjusted p-values", value = FALSE)
+            )
           ),
-          
           column(9,
-                 box(width = 12, title = "UMAP: Gene Clustering",
-                     status = "primary", solidHeader = TRUE,
-                     plotlyOutput("cluster_umap", height = "500px")),
-                 
-                 box(width = 12, title = "Correlation Heatmap",
-                     status = "warning", solidHeader = TRUE,
-                     plotOutput("cluster_heatmap", height = "500px")),
-                 
-                 box(width = 12, title = "Cluster Assignments",
-                     status = "info", solidHeader = TRUE,
-                     DTOutput("cluster_table"))
+            box(width = 12, title = "Gene Significance Plot",
+                status = "primary", solidHeader = TRUE,
+                plotlyOutput("phenotype_plot", height = "500px")),
+            box(width = 12, title = "Significant Genes",
+                status = "info", solidHeader = TRUE,
+                DTOutput("phenotype_table"))
           )
         )
       ),
       
-      # =====================================================================
-      # FOUR QUERY GENES - Requirement 4
-      # =====================================================================
+      # Gene Clustering Tab
       tabItem(
-        tabName = "query_genes",
-        h2("The Four Genotypes of Interest"),
-        p(strong("Purpose:"), " Summary of significant phenotypes for the four query genes: 
-          Smarcd3, Ppp3cc, Rab12, Klhl33. Shows parameter groups, p-values, disease links, and procedures."),
+        tabName = "clustering_view",
+        h2("Visualisation 3: Gene Clustering Analysis"),
+        p("UMAP clustering of genes based on phenotype similarity profiles."),
+        p(tags$em("Enhanced with most significant parameter information!")),
         
         fluidRow(
-          column(12,
-                 wellPanel(
-                   sliderInput("query_pvalue", "P-value Threshold:",
-                               min = 0.001, max = 0.1, value = 0.05, step = 0.001),
-                   checkboxInput("query_fdr", "Use FDR correction", value = FALSE)
-                 )
+          column(3,
+            wellPanel(
+              h4("Clustering Parameters"),
+              sliderInput("k_clusters", "Number of Clusters:",
+                         min = 2, max = 10, value = 3, step = 1),
+              hr(),
+              h4("Filters"),
+              selectInput("cluster_category_filter", "Parameter Category:", choices = NULL),
+              selectInput("cluster_strain_filter", "Mouse Strain:", choices = NULL),
+              selectInput("cluster_lifestage_filter", "Life Stage:", choices = NULL),
+              checkboxInput("cluster_only_mandatory", "Only Mandatory Procedures", value = FALSE),
+              hr(),
+              h4("P-value Options"),
+              sliderInput("cluster_pvalue_threshold", "P-value Threshold:",
+                         min = 0.001, max = 0.1, value = 0.05, step = 0.001),
+              checkboxInput("cluster_use_fdr", "Use FDR-adjusted p-values", value = FALSE)
+            )
+          ),
+          column(9,
+            box(width = 12, title = "UMAP Clustering",
+                status = "primary", solidHeader = TRUE,
+                plotlyOutput("cluster_plot", height = "500px")),
+            box(width = 12, title = "Correlation Heatmap",
+                status = "warning", solidHeader = TRUE,
+                plotOutput("heatmap_plot", height = "500px"))
           )
-        ),
+        )
+      ),
+      
+      # Procedure Info Tab
+      tabItem(
+        tabName = "procedure_view",
+        h2("Procedure Information Reference"),
+        p("Browse the complete mapping of parameters to procedures."),
         
         fluidRow(
-          valueBoxOutput("query_smarcd3"),
-          valueBoxOutput("query_ppp3cc"),
-          valueBoxOutput("query_rab12"),
-          valueBoxOutput("query_klhl33")
-        ),
+          column(3,
+            wellPanel(
+              h4("Filters"),
+              selectInput("proc_category_filter", "Parameter Category:", choices = NULL),
+              checkboxInput("proc_only_mandatory", "Only Mandatory", value = FALSE)
+            )
+          ),
+          column(9,
+            box(width = 12, title = "Parameter-Procedure Mapping",
+                status = "primary", solidHeader = TRUE,
+                DTOutput("procedure_table")),
+            box(width = 12, title = "Statistics",
+                status = "info", solidHeader = TRUE,
+                verbatimTextOutput("procedure_stats"))
+          )
+        )
+      ),
+      
+      # Disease Associations Tab
+      tabItem(
+        tabName = "disease_view",
+        h2("Disease Associations"),
+        p("Explore disease associations for your query genes."),
         
         fluidRow(
-          box(width = 12, title = "Comparison of Query Genes",
-              status = "primary", solidHeader = TRUE,
-              plotlyOutput("query_comparison", height = "400px"))
-        ),
-        
-        fluidRow(
-          box(width = 12, title = "Detailed Results for All Four Genes",
-              status = "info", solidHeader = TRUE,
-              p(strong("Shows:"), " Gene, Parameter group, Parameter name, P-value, Disease association, Procedure"),
-              DTOutput("query_table"))
+          column(3,
+            wellPanel(
+              h4("Gene Selection"),
+              selectInput("disease_gene_select", "Select Gene:", choices = NULL),
+              hr(),
+              h4("Filter Options"),
+              checkboxInput("disease_show_all", "Show all associations", value = TRUE)
+            )
+          ),
+          column(9,
+            box(width = 12, title = "Disease Information",
+                status = "primary", solidHeader = TRUE,
+                DTOutput("disease_table")),
+            box(width = 12, title = "Summary Statistics",
+                status = "info", solidHeader = TRUE,
+                uiOutput("disease_stats"))
+          )
+        )
+      ),
+      
+      # About Tab 
+      tabItem(
+        tabName = "about",
+        h2("About This Dashboard"),
+        box(width = 12,
+            h3("IMPC Phenotype Analysis Dashboard - MASTER VERSION"),
+            p("Interactive exploration of IMPC mouse phenotype data with comprehensive features."),
+            
+            h4("Features:"),
+            tags$ul(
+              tags$li(strong("FDR Correction"), " - Benjamini-Hochberg multiple testing correction"),
+              tags$li(strong("Bubble Chart"), " - Novel Visualisation with transformed p-values"),
+              tags$li(strong("Disease Associations"), " - Link genes to disease information"),
+              tags$li(strong("Enhanced Clustering"), " - Shows most significant parameter per gene"),
+              tags$li(strong("Procedure Information"), " - Tooltips show procedure names and descriptions"),
+              tags$li(strong("Mandatory Filter"), " - Filter by mandatory/optional procedures"),
+              tags$li(strong("Flexible Data Source"), " - Works with CSV files or MySQL database"),
+              tags$li(strong("Fisher's Method"), " - P-value combination across strains/life stages"),
+              tags$li(strong("Custom Gene Lists"), " - Paste your own gene symbols"),
+              tags$li(strong("Comprehensive Filtering"), " - Category, strain, life stage filters")
+            ),
+            h4("Flexible Data Source:"),
+            p("This dashboard can load data from:"),
+            tags$ul(
+              tags$li(strong("CSV Files"), " - For development and testing"),
+              tags$li(strong("MySQL Database"), " - For production deployment")
+            ),
+            p("Change data source by updating DATA_SOURCE in data_loader_module.R"),
+            
+            h4("Your Query Genes:"),
+            tags$ul(
+              tags$li(strong("Smarcd3"), " (MGI:1914243) - SWI/SNF related matrix associated actin dependent regulator of chromatin"),
+              tags$li(strong("Ppp3cc"), " (MGI:107162) - Protein phosphatase 3 catalytic subunit gamma"),
+              tags$li(strong("Rab12"), " (MGI:894284) - RAB12 member RAS oncogene family"),
+              tags$li(strong("Klhl33"), " (MGI:3644593) - Kelch like family member 33")
+            ),
+            
+            h4("Data Statistics:"),
+            uiOutput("data_stats")
         )
       )
     )
   )
 )
 
-# ============================================================================
-# SERVER
-# ============================================================================
+
+# SERVER LOGIC
 
 server <- function(input, output, session) {
   
-  # ========================================================================
-  # DATA LOADING & PREPARATION
-  # ========================================================================
-  
+  # Load data on startup using flexible loader
   data <- reactive({
     df <- load_data()
     
     # Add FDR correction
+    cat("  Applying FDR correction (Benjamini-Hochberg)...\n")
     df <- df %>%
       mutate(p_adj = p.adjust(pvalue, method = "BH"),
-             is_query = gene_symbol %in% QUERY_GENES)
+             sig_fdr = ifelse(!is.na(p_adj) & p_adj < 0.05, TRUE, FALSE))
     
+    cat("  FDR correction complete!\n")
     return(df)
   })
   
-  # Try to load disease information, with robust column normalisation
+  # Load disease information
   disease_data <- reactive({
     tryCatch({
-      disease <- read.csv(CSV_FILES$disease, header = TRUE, stringsAsFactors = FALSE)
-      
-      # Normalise gene_accession_id column name
-      if (!"gene_accession_id" %in% names(disease)) {
-        if ("GENE_ACCESSION_ID" %in% names(disease)) {
-          disease <- dplyr::rename(disease, gene_accession_id = GENE_ACCESSION_ID)
-        }
-      }
-      
-      # Normalise disease term column name
-      if (!"disease_term" %in% names(disease)) {
-        if ("DISEASE_TERM" %in% names(disease)) {
-          disease <- dplyr::rename(disease, disease_term = DISEASE_TERM)
-        } else if ("disease_name" %in% names(disease)) {
-          disease <- dplyr::rename(disease, disease_term = disease_name)
-        } else if ("DISEASE_LABEL" %in% names(disease)) {
-          disease <- dplyr::rename(disease, disease_term = DISEASE_LABEL)
-        } else {
-          disease$disease_term <- NA_character_
-        }
-      }
-      
-      disease
+      disease_info <- read.csv(CSV_FILES$disease, header = TRUE, stringsAsFactors = FALSE)
+      cat("  Loaded disease information\n")
+      return(disease_info)
     }, error = function(e) {
-      data.frame(
-        gene_accession_id = character(),
-        disease_id        = character(),
-        disease_term      = character(),
-        stringsAsFactors  = FALSE
-      )
+      cat("  Warning: Could not load disease information:", e$message, "\n")
+      return(NULL)
     })
   })
   
-  # Gene-disease summary (robust to missing disease_term)
-  gene_disease_summary <- reactive({
-    disease <- disease_data()
-    if (nrow(disease) == 0 || !"gene_accession_id" %in% names(disease)) {
-      return(data.frame(
-        gene_accession_id = character(),
-        n_diseases        = integer(),
-        top_disease       = character(),
-        stringsAsFactors  = FALSE
-      ))
-    }
-    
-    disease %>%
-      group_by(gene_accession_id) %>%
-      summarise(
-        n_diseases = sum(!is.na(disease_term)),
-        top_disease = {
-          dt <- disease_term[!is.na(disease_term)]
-          if (length(dt) == 0) NA_character_ else dt[1]
-        },
-        .groups = "drop"
-      )
+  # Display data source in UI
+  output$data_source_indicator <- renderText({
+    toupper(DATA_SOURCE)
   })
   
-  # Initialise dropdowns
+  # Display data statistics in About tab
+  output$data_stats <- renderUI({
+    df <- data()
+    proc_count <- sum(!is.na(df$procedure_name))
+    proc_pct <- round(proc_count / nrow(df) * 100, 1)
+    fdr_sig_count <- sum(df$sig_fdr, na.rm = TRUE)
+    fdr_sig_pct <- round(fdr_sig_count / nrow(df) * 100, 1)
+    
+    tags$div(
+      tags$p(strong("Total Records: "), format(nrow(df), big.mark = ",")),
+      tags$p(strong("Unique Genes: "), n_distinct(df$gene_symbol)),
+      tags$p(strong("Unique Parameters: "), n_distinct(df$parameter_id)),
+      tags$p(strong("Significant (FDR < 0.05): "), 
+             format(fdr_sig_count, big.mark = ","), " (", fdr_sig_pct, "%)"),
+      tags$p(strong("Parameters with Procedure Info: "), 
+             format(proc_count, big.mark = ","), " (", proc_pct, "%)"),
+      tags$p(strong("Mouse Strains: "), paste(levels(df$mouse_strain), collapse = ", ")),
+      tags$p(strong("Life Stages: "), paste(levels(df$mouse_life_stage), collapse = ", "))
+    )
+  })
+  
+  # Initialise dropdown choices
   observe({
     df <- data()
     
-    cats <- c("All" = "all", names(GROUP_COLORS))
-    updateSelectInput(session, "gene_category", choices = cats)
-    updateSelectInput(session, "pheno_category", choices = cats)
-    updateSelectInput(session, "cluster_category", choices = cats)
+    gene_choices <- c("All" = "all", sort(unique(df$gene_combined)))
+    updateSelectInput(session, "gene_select", choices = gene_choices)
+    updateSelectInput(session, "bubble_gene_select", choices = gene_choices)
+    updateSelectInput(session, "disease_gene_select", choices = sort(unique(df$gene_symbol)))
     
-    strains <- c("All" = "all", sort(unique(as.character(df$mouse_strain))))
-    updateSelectInput(session, "gene_strain", choices = strains)
-    updateSelectInput(session, "cluster_strain", choices = strains)
+    category_choices <- c("All" = "all", sort(unique(as.character(df$category))))
+    updateSelectInput(session, "gene_category_filter", choices = category_choices)
+    updateSelectInput(session, "bubble_category_filter", choices = category_choices)
+    updateSelectInput(session, "phenotype_category_filter", choices = category_choices)
+    updateSelectInput(session, "cluster_category_filter", choices = category_choices)
+    updateSelectInput(session, "proc_category_filter", choices = category_choices)
     
-    lifestages <- c("All" = "all", sort(unique(as.character(df$mouse_life_stage))))
-    updateSelectInput(session, "gene_lifestage", choices = lifestages)
-    updateSelectInput(session, "cluster_lifestage", choices = lifestages)
+    strain_choices <- c("All" = "all", sort(unique(as.character(df$mouse_strain))))
+    updateSelectInput(session, "gene_strain_filter", choices = strain_choices)
+    updateSelectInput(session, "cluster_strain_filter", choices = strain_choices)
     
-    genes <- c("All" = "all", sort(unique(df$gene_combined)))
-    updateSelectInput(session, "gene_select", choices = genes)
+    lifestage_choices <- c("All" = "all", sort(unique(as.character(df$mouse_life_stage))))
+    updateSelectInput(session, "gene_lifestage_filter", choices = lifestage_choices)
+    updateSelectInput(session, "cluster_lifestage_filter", choices = lifestage_choices)
+    
+    param_choices <- c("All" = "all", sort(unique(df$parameter_combined)))
+    updateSelectInput(session, "parameter_select", choices = param_choices)
   })
   
-  # Update phenotype parameters when category changes
-  observeEvent(input$pheno_category, {
+  # Update parameter choices when category filter changes
+  observeEvent(input$phenotype_category_filter, {
     df <- data()
-    if (input$pheno_category == "all") {
-      params <- sort(unique(df$parameter_combined))
+    if (input$phenotype_category_filter == "all") {
+      param_choices <- sort(unique(df$parameter_combined))
     } else {
-      params <- sort(unique(df[df$category == input$pheno_category, ]$parameter_combined))
+      param_choices <- sort(unique(df[df$category == input$phenotype_category_filter, ]$parameter_combined))
     }
-    updateSelectInput(session, "pheno_parameter", choices = params)
+    updateSelectInput(session, "parameter_select", choices = c("All" = "all", param_choices))
   })
   
-  # ========================================================================
-  # OVERVIEW TAB
-  # ========================================================================
-  
-  output$total_genes <- renderValueBox({
-    valueBox(n_distinct(data()$gene_symbol), "Total Genes", icon = icon("dna"), color = "blue")
-  })
-  
-  output$total_parameters <- renderValueBox({
-    valueBox(n_distinct(data()$parameter_id), "Total Parameters", icon = icon("list"), color = "green")
-  })
-  
-  output$total_significant <- renderValueBox({
-    n_sig <- sum(data()$pvalue <= DEFAULT_THRESHOLD, na.rm = TRUE)
-    valueBox(format(n_sig, big.mark = ","), "Significant Associations (p≤0.05)", 
-             icon = icon("check"), color = "orange")
-  })
-  
-  output$overview_params <- renderPlotly({
-    df <- data() %>%
-      group_by(category) %>%
-      summarise(n_params = n_distinct(parameter_id), .groups = 'drop') %>%
-      arrange(desc(n_params))
-    
-    plot_ly(df, x = ~reorder(category, n_params), y = ~n_params, type = "bar",
-            marker = list(color = ~category, colors = GROUP_COLORS)) %>%
-      layout(xaxis = list(title = "", tickangle = -45),
-             yaxis = list(title = "Number of Parameters"),
-             showlegend = FALSE)
-  })
-  
-  output$overview_sig <- renderPlotly({
-    df <- data() %>%
-      filter(pvalue <= DEFAULT_THRESHOLD) %>%
-      group_by(category) %>%
-      summarise(n_sig = n(), .groups = 'drop') %>%
-      arrange(desc(n_sig))
-    
-    plot_ly(df, x = ~reorder(category, n_sig), y = ~n_sig, type = "bar",
-            marker = list(color = ~category, colors = GROUP_COLORS)) %>%
-      layout(xaxis = list(title = "", tickangle = -45),
-             yaxis = list(title = "Significant Associations (p≤0.05)"),
-             showlegend = FALSE)
-  })
-  
-  output$overview_table <- renderDT({
-    df <- data() %>%
-      group_by(category) %>%
-      summarise(`Parameters` = n_distinct(parameter_id),
-                `Significant (p≤0.05)` = sum(pvalue <= 0.05, na.rm = TRUE),
-                `% Significant` = round(sum(pvalue <= 0.05, na.rm = TRUE) / n() * 100, 1),
-                .groups = 'drop') %>%
-      arrange(desc(`Significant (p≤0.05)`))
-    
-    datatable(df, options = list(pageLength = 20), rownames = FALSE)
-  })
-  
-  # ========================================================================
-  # GENE ANALYSIS TAB
-  # ========================================================================
-  
-  gene_custom_list <- reactive({
-    if (is.null(input$gene_custom) || trimws(input$gene_custom) == "") return(NULL)
-    genes <- unlist(strsplit(input$gene_custom, "\n"))
+  # Process custom gene list
+  custom_genes <- reactive({
+    # Return NULL if textbox is empty or only whitespace
+    if (is.null(input$custom_genes) || trimws(input$custom_genes) == "") {
+      return(NULL)
+    }
+    # Process the gene list
+    genes <- unlist(strsplit(input$custom_genes, "\n"))
     genes <- trimws(genes)
-    genes[genes != ""]
+    genes <- genes[genes != ""]
+    
+    # Return NULL if no valid genes after processing
+    if (length(genes) == 0) {
+      return(NULL)
+    }
+    return(genes)
   })
   
+  # Filter data for gene view
   gene_data <- reactive({
     df <- data()
     
-    # Filter by gene
-    custom <- gene_custom_list()
+    # Apply filters first
+    custom <- custom_genes()
     if (!is.null(custom) && length(custom) > 0) {
       df <- df[df$gene_symbol %in% custom, ]
     } else if (input$gene_select != "all") {
       df <- df[df$gene_combined == input$gene_select, ]
     }
     
-    # Apply other filters
-    if (input$gene_category != "all") df <- df[df$category == input$gene_category, ]
-    if (input$gene_strain != "all") df <- df[df$mouse_strain == input$gene_strain, ]
-    if (input$gene_lifestage != "all") df <- df[df$mouse_life_stage == input$gene_lifestage, ]
+    if (input$gene_category_filter != "all") {
+      df <- df[df$category == input$gene_category_filter, ]
+    }
+    if (input$gene_strain_filter != "all") {
+      df <- df[df$mouse_strain == input$gene_strain_filter, ]
+    }
+    if (input$gene_lifestage_filter != "all") {
+      df <- df[df$mouse_life_stage == input$gene_lifestage_filter, ]
+    }
+    if (input$gene_only_mandatory) {
+      df <- df[!is.na(df$is_mandatory) & df$is_mandatory == TRUE, ]
+    }
     
-    if (nrow(df) == 0) return(NULL)
+    # Create procedure lookup BEFORE aggregation
+    proc_lookup <- df %>%
+      select(parameter_id, parameter_name, procedure_name, procedure_description, is_mandatory) %>%
+      distinct()
     
     # Combine p-values using Fisher's method
     df_combined <- df %>%
       group_by(gene_symbol, parameter_id, parameter_name, category) %>%
       summarise(pvalue = combine_pvalue(pvalue),
-                p_adj = combine_pvalue(p_adj),
-                procedure_name = first(procedure_name),
-                gene_accession_id = first(gene_accession_id),
-                .groups = 'drop')
+               p_adj = combine_pvalue(p_adj), .groups = 'drop')
     
-    # Add disease information
-    disease_summary <- gene_disease_summary()
+    # Add back procedure information
     df_combined <- df_combined %>%
-      left_join(disease_summary, by = "gene_accession_id")
+      left_join(proc_lookup, by = c("parameter_id", "parameter_name"))
     
-    df_combined$pval_use <- if (input$gene_fdr) df_combined$p_adj else df_combined$pvalue
-    df_combined$neg_log10 <- -log10(df_combined$pval_use)
+    # Use appropriate p-value
+    if (input$gene_use_fdr) {
+      df_combined$plot_pvalue <- df_combined$p_adj
+    } else {
+      df_combined$plot_pvalue <- df_combined$pvalue
+    }
+    
+    df_combined$neg_log10_pvalue <- -log10(df_combined$plot_pvalue)
     
     return(df_combined)
   })
   
+  # Gene view plot
   output$gene_plot <- renderPlotly({
     df <- gene_data()
-    if (is.null(df) || nrow(df) == 0) {
-      return(plot_ly() %>% add_annotations(text = "No data. Check filters.", showarrow = FALSE))
+    
+    if (nrow(df) == 0) {
+      return(plot_ly() %>%
+        add_annotations(text = "No data available for selected filters.", 
+                       showarrow = FALSE, font = list(size = 16)))
     }
     
-    df$sig <- ifelse(df$pval_use <= input$gene_pvalue, "Significant", "Not Significant")
+    df$significant <- ifelse(df$plot_pvalue <= input$gene_pvalue_threshold, "Significant", "Not Significant")
     
-    plot_ly(df, x = ~seq_along(parameter_name), y = ~neg_log10,
+    # Create enhanced tooltips with procedure information
+    df$tooltip <- apply(df, 1, function(row) {
+      pval_label <- if (input$gene_use_fdr) "FDR-adjusted p-value" else "P-value"
+      tooltip_text <- paste0(
+        "<b>Parameter:</b> ", row["parameter_name"],
+        "<br><b>Category:</b> ", row["category"],
+        "<br><b>", pval_label, ":</b> ", format(as.numeric(row["plot_pvalue"]), scientific = TRUE, digits = 3)
+      )
+      
+      if (!is.na(row["procedure_name"]) && row["procedure_name"] != "") {
+        tooltip_text <- paste0(tooltip_text,
+                              "<br><b>Procedure:</b> ", row["procedure_name"])
+      }
+      
+      if (!is.na(row["is_mandatory"]) && row["is_mandatory"] != "") {
+        mandatory_text <- ifelse(row["is_mandatory"] == "TRUE", "Yes", "No")
+        tooltip_text <- paste0(tooltip_text,
+                              "<br><b>Mandatory:</b> ", mandatory_text)
+      }
+      
+      tooltip_text
+    })
+    
+    plot_ly(df, x = ~seq_along(parameter_name), y = ~neg_log10_pvalue,
             type = 'scatter', mode = 'markers',
-            marker = list(size = 8, color = ~category, colors = GROUP_COLORS,
-                          line = list(color = ~ifelse(sig == "Significant", "red", "white"), width = 2)),
-            text = ~paste0("<b>Parameter:</b> ", parameter_name,
-                           "<br><b>Group:</b> ", category,
-                           "<br><b>P-value:</b> ", signif(pval_use, 3),
-                           "<br><b>Procedure:</b> ", procedure_name,
-                           "<br><b>Diseases:</b> ", ifelse(is.na(n_diseases), 0, n_diseases)),
+            marker = list(size = 8, color = ~plot_pvalue, colorscale = 'Plasma',
+                         colorbar = list(title = if (input$gene_use_fdr) "FDR p-value" else "P-value"),
+                         line = list(color = ~ifelse(significant == "Significant", "red", "white"), width = 2)),
+            text = ~tooltip,
             hoverinfo = 'text') %>%
-      layout(xaxis = list(title = "Parameters (ordered by group)", showticklabels = FALSE),
-             yaxis = list(title = paste("-log10(", if (input$gene_fdr) "FDR-adjusted " else "", "p-value)")),
+      layout(title = paste("Phenotypes for", if (is.null(custom_genes())) input$gene_select else "Custom Gene List"),
+             xaxis = list(title = "Parameters (ordered by category)", showticklabels = FALSE),
+             yaxis = list(title = paste("-log10(", if (input$gene_use_fdr) "FDR-adjusted " else "", "p-value)", sep = "")),
              shapes = list(list(type = "line",
-                                y0 = -log10(input$gene_pvalue), y1 = -log10(input$gene_pvalue),
-                                x0 = 0, x1 = nrow(df),
-                                line = list(color = "red", dash = "dash", width = 2))),
-             showlegend = TRUE)
+                               y0 = -log10(input$gene_pvalue_threshold),
+                               y1 = -log10(input$gene_pvalue_threshold),
+                               x0 = 0, x1 = nrow(df),
+                               line = list(color = "red", dash = "dash", width = 2))))
   })
   
+  # Gene view table
   output$gene_table <- renderDT({
     df <- gene_data()
-    if (is.null(df)) return(NULL)
+    df_sig <- df[df$plot_pvalue <= input$gene_pvalue_threshold, ]
     
-    df_sig <- df[df$pval_use <= input$gene_pvalue, ]
     if (nrow(df_sig) == 0) {
-      return(datatable(data.frame(Message = "No significant phenotypes"),
-                       options = list(dom = 't'), rownames = FALSE))
+      return(datatable(data.frame(Message = "No significant phenotypes found"),
+                      options = list(dom = 't'), rownames = FALSE))
     }
     
-    summary <- df_sig %>%
-      arrange(pval_use) %>%
-      select(`Parameter Name` = parameter_name,
-             `Parameter Group` = category,
-             `P-value` = pval_use,
-             `Disease Link` = n_diseases,
-             `Procedure` = procedure_name) %>%
-      mutate(`P-value` = format(`P-value`, scientific = TRUE, digits = 3),
-             `Disease Link` = ifelse(is.na(`Disease Link`), "No",
-                                     paste(`Disease Link`, "diseases")))
+    pval_col_name <- if (input$gene_use_fdr) "FDR p-value" else "P-value"
+    summary_df <- df_sig %>%
+      arrange(plot_pvalue) %>%
+      select(Parameter = parameter_name, Category = category,
+             Procedure = procedure_name, Mandatory = is_mandatory) %>%
+      mutate(!!pval_col_name := format(df_sig$plot_pvalue[order(df_sig$plot_pvalue)], 
+                                       scientific = TRUE, digits = 3))
     
-    datatable(summary, options = list(pageLength = 10, scrollX = TRUE), rownames = FALSE)
+    datatable(summary_df, options = list(pageLength = 10, scrollX = TRUE,
+                                         order = list(list(4, 'asc'))), rownames = FALSE)
   })
   
-  # ========================================================================
-  # PHENOTYPE ANALYSIS TAB
-  # ========================================================================
-  
-  output$pheno_details <- renderUI({
-    req(input$pheno_parameter)
-    df <- data()
-    param_info <- df %>%
-      filter(parameter_combined == input$pheno_parameter) %>%
-      select(parameter_name, parameter_id, category, procedure_name) %>%
-      distinct() %>%
-      slice(1)
-    
-    if (nrow(param_info) == 0) return(p("Select a parameter"))
-    
-    tags$div(
-      tags$p(strong("Parameter:"), param_info$parameter_name),
-      tags$p(strong("ID:"), param_info$parameter_id),
-      tags$p(strong("Group:"), param_info$category),
-      tags$p(strong("Procedure:"), param_info$procedure_name)
-    )
-  })
-  
-  pheno_data <- reactive({
-    req(input$pheno_parameter)
+  # Bubble Chart
+  output$bubble_chart <- renderPlotly({
     df <- data()
     
-    df <- df[df$parameter_combined == input$pheno_parameter, ]
-    if (nrow(df) == 0) return(NULL)
-    
-    # Combine per gene
-    df_combined <- df %>%
-      group_by(gene_symbol, gene_accession_id) %>%
-      summarise(pvalue = combine_pvalue(pvalue),
-                p_adj = combine_pvalue(p_adj),
-                .groups = 'drop')
-    
-    # Add disease info
-    disease_summary <- gene_disease_summary()
-    df_combined <- df_combined %>%
-      left_join(disease_summary, by = "gene_accession_id")
-    
-    df_combined$pval_use <- if (input$pheno_fdr) df_combined$p_adj else df_combined$pvalue
-    df_combined$neg_log10 <- -log10(df_combined$pval_use)
-    df_combined$has_disease <- !is.na(df_combined$n_diseases) & df_combined$n_diseases > 0
-    
-    return(df_combined)
-  })
-  
-  output$pheno_plot <- renderPlotly({
-    df <- pheno_data()
-    if (is.null(df)) {
-      return(plot_ly() %>% add_annotations(text = "Select a parameter", showarrow = FALSE))
+    # Apply gene filter
+    if (input$bubble_gene_select != "all") {
+      df <- df[df$gene_combined == input$bubble_gene_select, ]
     }
     
-    df$sig <- ifelse(df$pval_use <= input$pheno_pvalue, "Significant", "Not Significant")
+    # Apply category filter
+    if (input$bubble_category_filter != "all") {
+      df <- df[df$category == input$bubble_category_filter, ]
+    }
     
-    if (input$pheno_highlight_disease) {
-      df$color_group <- ifelse(df$has_disease, "Disease-linked", "No disease link")
-      colors <- c("Disease-linked" = "red", "No disease link" = "grey")
+    if (nrow(df) == 0) {
+      return(plot_ly() %>%
+        add_annotations(text = "No data available for selected gene.", 
+                       showarrow = FALSE, font = list(size = 16)))
+    }
+    
+    # Use appropriate p-value
+    if (input$bubble_use_fdr) {
+      df$plot_pvalue <- df$p_adj
     } else {
-      df$color_group <- df$sig
-      colors <- c("Significant" = "red", "Not Significant" = "grey")
+      df$plot_pvalue <- df$pvalue
     }
     
-    plot_ly(df, x = ~seq_along(gene_symbol), y = ~neg_log10,
+    # Aggregate by parameter (take minimum p-value)
+    df_agg <- df %>%
+      group_by(parameter_name, category) %>%
+      summarise(p_value = min(plot_pvalue, na.rm = TRUE), .groups = "drop") %>%
+      mutate(ptrans = (1 - p_value)^8,  # Transform p-value for Visualisation
+             sig_group = ifelse(p_value < input$bubble_pvalue_threshold, "Significant", "Non-significant"))
+    
+    if (nrow(df_agg) == 0) return(NULL)
+    
+    plot_ly(df_agg,
+            x = ~parameter_name,
+            y = ~ptrans,
+            type = "scatter",
+            mode = "markers",
+            marker = list(
+              size = ~ptrans * 50,  # Bubble size proportional to transformed p-value
+              color = ~sig_group,
+              colors = c("Significant" = "steelblue", "Non-significant" = "grey"),
+              line = list(color = "black", width = 1)
+            ),
+            text = ~paste0(
+              "<b>Parameter:</b> ", parameter_name,
+              "<br><b>Category:</b> ", category,
+              "<br><b>", if (input$bubble_use_fdr) "FDR p-value" else "P-value", ":</b> ", 
+              signif(p_value, 3),
+              "<br><b>Significance:</b> ", sig_group
+            ),
+            hoverinfo = "text") %>%
+      layout(
+        title = paste("Bubble Chart for", input$bubble_gene_select),
+        xaxis = list(title = "Parameters", tickangle = -45, automargin = TRUE),
+        yaxis = list(title = "Transformed p-value [(1-p)^8]"),
+        showlegend = TRUE
+      )
+  })
+  
+  # Filter data for phenotype view
+  phenotype_data <- reactive({
+    df <- data()
+    
+    if (input$parameter_select == "all") {
+      return(df)
+    }
+    
+    df <- df[df$parameter_combined == input$parameter_select, ]
+    
+    # Use appropriate p-value
+    if (input$phenotype_use_fdr) {
+      df$plot_pvalue <- df$p_adj
+    } else {
+      df$plot_pvalue <- df$pvalue
+    }
+    
+    df$neg_log10_pvalue <- -log10(df$plot_pvalue)
+    
+    return(df)
+  })
+  
+  # Phenotype view plot
+  output$phenotype_plot <- renderPlotly({
+    df <- phenotype_data()
+    
+    if (nrow(df) == 0 || input$parameter_select == "all") {
+      return(plot_ly() %>%
+        add_annotations(text = "Please select a specific parameter.", 
+                       showarrow = FALSE, font = list(size = 16)))
+    }
+    
+    df$significant <- ifelse(df$plot_pvalue <= input$phenotype_pvalue_threshold, "Significant", "Not Significant")
+    
+    # Create enhanced tooltips
+    df$tooltip <- apply(df, 1, function(row) {
+      pval_label <- if (input$phenotype_use_fdr) "FDR-adjusted p-value" else "P-value"
+      tooltip_text <- paste0(
+        "<b>Gene:</b> ", row["gene_symbol"],
+        "<br><b>MGI ID:</b> ", row["gene_accession_id"],
+        "<br><b>", pval_label, ":</b> ", format(as.numeric(row["plot_pvalue"]), scientific = TRUE, digits = 3)
+      )
+      
+      if (!is.na(row["procedure_name"]) && row["procedure_name"] != "") {
+        tooltip_text <- paste0(tooltip_text,
+                              "<br><b>Procedure:</b> ", row["procedure_name"])
+      }
+      
+      tooltip_text
+    })
+    
+    plot_ly(df, x = ~seq_along(gene_symbol), y = ~neg_log10_pvalue,
             type = 'scatter', mode = 'markers',
-            marker = list(size = 8, color = ~color_group, colors = colors,
-                          line = list(color = "black", width = 1)),
-            text = ~paste0("<b>Gene:</b> ", gene_symbol,
-                           "<br><b>MGI ID:</b> ", gene_accession_id,
-                           "<br><b>P-value:</b> ", signif(pval_use, 3),
-                           "<br><b>Diseases:</b> ", ifelse(is.na(n_diseases), 0, n_diseases),
-                           "<br><b>Top disease:</b> ", ifelse(is.na(top_disease), "None", top_disease)),
+            marker = list(size = 8, color = ~plot_pvalue, colorscale = 'Plasma',
+                         colorbar = list(title = if (input$phenotype_use_fdr) "FDR p-value" else "P-value"),
+                         line = list(color = ~ifelse(significant == "Significant", "red", "white"), width = 2)),
+            text = ~tooltip,
             hoverinfo = 'text') %>%
-      layout(xaxis = list(title = "Genes", showticklabels = FALSE),
-             yaxis = list(title = paste("-log10(", if (input$pheno_fdr) "FDR-adjusted " else "", "p-value)")),
+      layout(title = "Gene Significance for Selected Phenotype(s)",
+             xaxis = list(title = "Genes", showticklabels = FALSE),
+             yaxis = list(title = paste("-log10(", if (input$phenotype_use_fdr) "FDR-adjusted " else "", "p-value)", sep = "")),
              shapes = list(list(type = "line",
-                                y0 = -log10(input$pheno_pvalue), y1 = -log10(input$pheno_pvalue),
-                                x0 = 0, x1 = nrow(df),
-                                line = list(color = "red", dash = "dash", width = 2))),
-             showlegend = TRUE)
+                               y0 = -log10(input$phenotype_pvalue_threshold),
+                               y1 = -log10(input$phenotype_pvalue_threshold),
+                               x0 = 0, x1 = nrow(df),
+                               line = list(color = "red", dash = "dash", width = 2))))
   })
   
-  output$pheno_table <- renderDT({
-    df <- pheno_data()
-    if (is.null(df)) return(NULL)
+  # Phenotype view table
+  output$phenotype_table <- renderDT({
+    df <- phenotype_data()
+    df_sig <- df[df$plot_pvalue <= input$phenotype_pvalue_threshold, ]
     
-    df_sig <- df[df$pval_use <= input$pheno_pvalue, ]
     if (nrow(df_sig) == 0) {
-      return(datatable(data.frame(Message = "No significant genes"),
-                       options = list(dom = 't'), rownames = FALSE))
+      return(datatable(data.frame(Message = "No significant genes found"),
+                      options = list(dom = 't'), rownames = FALSE))
     }
     
-    summary <- df_sig %>%
-      arrange(pval_use) %>%
-      select(`Gene Symbol` = gene_symbol,
-             `MGI ID` = gene_accession_id,
-             `P-value` = pval_use,
-             `N Diseases` = n_diseases,
-             `Top Disease` = top_disease) %>%
-      mutate(`P-value` = format(`P-value`, scientific = TRUE, digits = 3),
-             `N Diseases` = ifelse(is.na(`N Diseases`), 0, `N Diseases`),
-             `Top Disease` = ifelse(is.na(`Top Disease`), "None", `Top Disease`))
+    pval_col_name <- if (input$phenotype_use_fdr) "FDR p-value" else "P-value"
+    summary_df <- df_sig %>%
+      arrange(plot_pvalue) %>%
+      select(Gene = gene_symbol, `MGI ID` = gene_accession_id,
+             Strain = mouse_strain, Procedure = procedure_name) %>%
+      mutate(!!pval_col_name := format(df_sig$plot_pvalue[order(df_sig$plot_pvalue)], 
+                                       scientific = TRUE, digits = 3))
     
-    datatable(summary, options = list(pageLength = 10, scrollX = TRUE), rownames = FALSE)
+    datatable(summary_df, options = list(pageLength = 10, scrollX = TRUE,
+                                         order = list(list(4, 'asc'))), rownames = FALSE)
   })
   
-  # ========================================================================
-  # CLUSTERING TAB
-  # ========================================================================
-  
+  # Clustering data
   cluster_data <- reactive({
     df <- data()
     
-    # Apply filters
-    if (input$cluster_category != "all") df <- df[df$category == input$cluster_category, ]
-    if (input$cluster_strain != "all") df <- df[df$mouse_strain == input$cluster_strain, ]
-    if (input$cluster_lifestage != "all") df <- df[df$mouse_life_stage == input$cluster_lifestage, ]
+    if (input$cluster_category_filter != "all") {
+      df <- df[df$category == input$cluster_category_filter, ]
+    }
+    if (input$cluster_strain_filter != "all") {
+      df <- df[df$mouse_strain == input$cluster_strain_filter, ]
+    }
+    if (input$cluster_lifestage_filter != "all") {
+      df <- df[df$mouse_life_stage == input$cluster_lifestage_filter, ]
+    }
+    if (input$cluster_only_mandatory) {
+      df <- df[!is.na(df$is_mandatory) & df$is_mandatory == TRUE, ]
+    }
     
-    df$pval_use <- if (input$cluster_fdr) df$p_adj else df$pvalue
-    df <- df[df$pval_use <= input$cluster_pvalue, ]
+    # Use appropriate p-value
+    if (input$cluster_use_fdr) {
+      df$plot_pvalue <- df$p_adj
+    } else {
+      df$plot_pvalue <- df$pvalue
+    }
+    
+    df <- df[df$plot_pvalue <= input$cluster_pvalue_threshold, ]
     
     if (nrow(df) == 0) return(NULL)
     
-    # Build matrix
     df_combined <- df %>%
-      group_by(gene_symbol, parameter_id) %>%
-      summarise(pvalue = combine_pvalue(pval_use), .groups = 'drop')
+      group_by(gene_symbol, parameter_id, parameter_name) %>%
+      summarise(pvalue = combine_pvalue(plot_pvalue), .groups = 'drop')
     
     mat <- df_combined %>%
-      mutate(sig = 1) %>%
-      pivot_wider(names_from = parameter_id, values_from = sig, values_fill = 0) %>%
+      mutate(significant = 1) %>%
+      pivot_wider(names_from = parameter_id, values_from = significant, values_fill = 0) %>%
       as.data.frame()
     
-    mat <- mat[!duplicated(mat$gene_symbol), ]
     rownames(mat) <- mat$gene_symbol
     mat <- mat[, -1]
     
     if (nrow(mat) < 3 || ncol(mat) < 2) return(NULL)
     
-    # Remove constant columns
-    mat <- mat[, apply(mat, 2, function(x) length(unique(x)) > 1)]
-    if (ncol(mat) < 2) return(NULL)
+    # Get most significant parameter for each gene
+    most_sig_param <- df_combined %>%
+      group_by(gene_symbol) %>%
+      slice_min(order_by = pvalue, n = 1) %>%
+      select(gene_symbol, most_sig_parameter = parameter_name)
     
-    # ---- SAFE UMAP CONFIG (fix for "n_neighbors must be smaller than number of items") ----
-    n_genes <- nrow(mat)
-    n_neighbors <- max(2, min(15, n_genes - 1))
-    umap_config <- umap::umap.defaults
-    umap_config$n_neighbors <- n_neighbors
-    umap_config$random_state <- 123
-    
-    umap_res <- tryCatch(
-      umap::umap(mat, config = umap_config),
-      error = function(e) NULL
-    )
-    if (is.null(umap_res)) return(NULL)
-    # ----------------------------------------------------------------------    
-    
-    # K-means
-    k <- min(input$cluster_k, nrow(mat) - 1)
-    km_res <- kmeans(mat, centers = k, nstart = 25)
-    
-    # Result
-    result_df <- data.frame(
-      gene = rownames(mat),
-      x = umap_res$layout[,1],
-      y = umap_res$layout[,2],
-      cluster = as.factor(km_res$cluster),
-      n_sig = rowSums(mat),
-      is_query = rownames(mat) %in% QUERY_GENES
-    )
-    
-    list(df = result_df, matrix = mat)
+    list(matrix = mat, genes = rownames(mat), raw_data = df_combined, 
+         most_sig = most_sig_param)
   })
   
-  output$cluster_umap <- renderPlotly({
-    obj <- cluster_data()
-    if (is.null(obj)) {
-      return(
-        plot_ly() %>%
-          add_annotations(text = "No data. Try relaxing filters.",
-                          showarrow = FALSE)
-      )
+  # Clustering plot
+  output$cluster_plot <- renderPlotly({
+    clust <- cluster_data()
+    if (is.null(clust)) {
+      return(plot_ly() %>%
+        add_annotations(text = "No significant phenotypes found.\nTry adjusting filters.", 
+                       showarrow = FALSE, font = list(size = 16)))
     }
     
-    df <- obj$df
+    umap_result <- umap(clust$matrix, random_state = 123)
+    k <- min(input$k_clusters, nrow(clust$matrix) - 1)
+    kmeans_result <- kmeans(clust$matrix, centers = k, nstart = 25)
+    sig_counts <- rowSums(clust$matrix)
     
-    # Base scatter: all genes coloured by cluster
-    p <- plot_ly(
-      data  = df,
-      x     = ~x,
-      y     = ~y,
-      type  = "scatter",
-      mode  = "markers",
-      color = ~cluster,                      # cluster -> colour
-      colors = "Set1",                       # or viridis if you prefer
-      size  = ~pmin(n_sig, 10),        # dynamic size mapping
-      sizes = c(4, 14),                # min/max size of points
-      marker = list(opacity = 0.8),
-      text = ~paste0(
-        "<b>Gene:</b> ", gene,
-        "<br><b>Cluster:</b> ", cluster,
-        "<br><b>Sig phenotypes:</b> ", n_sig
-      ),
-      hoverinfo = "text"
-    )
+    plot_df <- data.frame(x = umap_result$layout[, 1], y = umap_result$layout[, 2],
+                         gene = clust$genes, cluster = as.factor(kmeans_result$cluster),
+                         sig_count = sig_counts)
     
-    # Optional: highlight query genes on top
-    if (input$cluster_highlight_query) {
-      query_df <- df[df$is_query, ]
-      if (nrow(query_df) > 0) {
-        # thicker red outline, keep fill = cluster colour
-        p <- p %>%
-          add_markers(
-            data = query_df,
-            x    = ~x,
-            y    = ~y,
-            marker = list(
-              size = 10,
-              color = "rgba(0,0,0,0)",              # transparent fill
-              line  = list(color = "red", width = 2)
-            ),
-            hoverinfo  = "none",
-            showlegend = FALSE
-          ) %>%
-          add_text(
-            data = query_df,
-            x    = ~x,
-            y    = ~y,
-            text = ~gene,
-            textposition = "top center",
-            textfont = list(size = 10, color = "red"),
-            showlegend = FALSE
-          )
-      }
-    }
+    # Add most significant parameter info
+    plot_df <- plot_df %>%
+      left_join(clust$most_sig, by = c("gene" = "gene_symbol"))
     
-    p %>%
-      layout(
-        xaxis = list(title = "UMAP 1"),
-        yaxis = list(title = "UMAP 2")
-      )
+    # Enhanced tooltip with most significant parameter
+    plot_ly(plot_df, x = ~x, y = ~y, type = 'scatter', mode = 'markers',
+            marker = list(size = ~sig_count * 2, color = ~as.numeric(cluster),
+                         colorscale = 'Viridis', colorbar = list(title = "Cluster"),
+                         line = list(color = "white", width = 1)),
+            text = ~paste("<b>Gene:</b>", gene, 
+                         "<br><b>Cluster:</b>", cluster, 
+                         "<br><b>Significant Phenotypes:</b>", sig_count,
+                         "<br><b>Most Significant Parameter:</b>", most_sig_parameter),
+            hoverinfo = 'text') %>%
+      layout(title = "UMAP Clustering of Genes", xaxis = list(title = "UMAP 1"),
+             yaxis = list(title = "UMAP 2"))
   })
   
-  output$cluster_heatmap <- renderPlot({
-    obj <- cluster_data()
-    if (is.null(obj)) {
+  # Heatmap
+  output$heatmap_plot <- renderPlot({
+    clust <- cluster_data()
+    if (is.null(clust)) {
       plot.new()
-      text(0.5, 0.5, "No data", cex = 1.5)
-      return()
+      text(0.5, 0.5, "No significant phenotypes found.\nTry adjusting filters.", cex = 1.2)
+    } else {
+      cor_mat <- cor(t(clust$matrix), method = "pearson")
+      pheatmap(cor_mat, clustering_distance_rows = "euclidean",
+               clustering_distance_cols = "euclidean", clustering_method = "complete",
+               color = colorRampPalette(c("white", "red"))(100), show_rownames = TRUE,
+               show_colnames = TRUE, fontsize_row = 8, fontsize_col = 8,
+               main = "Gene Correlation Heatmap")
     }
-    
-    cor_mat <- cor(t(obj$matrix), method = "pearson")
-    pheatmap(cor_mat, clustering_distance_rows = "euclidean",
-             clustering_distance_cols = "euclidean",
-             color = colorRampPalette(c("white", "red"))(100),
-             fontsize_row = 8, fontsize_col = 8,
-             main = "Gene Correlation Heatmap")
   })
   
-  output$cluster_table <- renderDT({
-    obj <- cluster_data()
-    if (is.null(obj)) return(NULL)
-    
-    summary <- obj$df %>%
-      select(Gene = gene, Cluster = cluster, `Significant Phenotypes` = n_sig,
-             `Query Gene` = is_query) %>%
-      arrange(Cluster, desc(`Significant Phenotypes`))
-    
-    datatable(summary, options = list(pageLength = 15), rownames = FALSE) %>%
-      formatStyle('Query Gene', backgroundColor = styleEqual(c(TRUE, FALSE), c('yellow', 'white')))
-  })
-  
-  # ========================================================================
-  # FOUR QUERY GENES TAB
-  # ========================================================================
-  
-  query_summary <- reactive({
+  # Procedure Info Tab - Table
+  output$procedure_table <- renderDT({
     df <- data()
-    df$pval_use <- if (input$query_fdr) df$p_adj else df$pvalue
     
-    # Get disease info
-    disease_summary <- gene_disease_summary()
+    # Get unique parameter-procedure mappings
+    proc_df <- df %>%
+      select(parameter_id, parameter_name, category, procedure_name, 
+             procedure_description, is_mandatory) %>%
+      distinct()
     
-    summary <- df %>%
-      filter(gene_symbol %in% QUERY_GENES, pval_use <= input$query_pvalue) %>%
-      group_by(gene_symbol, gene_accession_id) %>%
-      summarise(n_sig = n(),
-                top_category = names(sort(table(category), decreasing = TRUE))[1],
-                min_pvalue = min(pval_use),
-                .groups = 'drop') %>%
-      left_join(disease_summary, by = "gene_accession_id")
-    
-    return(summary)
-  })
-  
-  output$query_smarcd3 <- renderValueBox({
-    s <- query_summary() %>% filter(gene_symbol == "Smarcd3")
-    if (nrow(s) == 0) {
-      valueBox(0, "Smarcd3", subtitle = "No significant phenotypes", icon = icon("dna"), color = "red")
-    } else {
-      valueBox(s$n_sig, "Smarcd3", 
-               subtitle = paste("Top:", s$top_category, "| Diseases:", ifelse(is.na(s$n_diseases), 0, s$n_diseases)),
-               icon = icon("dna"), color = "red")
+    # Apply filters
+    if (input$proc_category_filter != "all") {
+      proc_df <- proc_df[proc_df$category == input$proc_category_filter, ]
     }
-  })
-  
-  output$query_ppp3cc <- renderValueBox({
-    s <- query_summary() %>% filter(gene_symbol == "Ppp3cc")
-    if (nrow(s) == 0) {
-      valueBox(0, "Ppp3cc", subtitle = "No significant phenotypes", icon = icon("dna"), color = "blue")
-    } else {
-      valueBox(s$n_sig, "Ppp3cc",
-               subtitle = paste("Top:", s$top_category, "| Diseases:", ifelse(is.na(s$n_diseases), 0, s$n_diseases)),
-               icon = icon("dna"), color = "blue")
-    }
-  })
-  
-  output$query_rab12 <- renderValueBox({
-    s <- query_summary() %>% filter(gene_symbol == "Rab12")
-    if (nrow(s) == 0) {
-      valueBox(0, "Rab12", subtitle = "No significant phenotypes", icon = icon("dna"), color = "green")
-    } else {
-      valueBox(s$n_sig, "Rab12",
-               subtitle = paste("Top:", s$top_category, "| Diseases:", ifelse(is.na(s$n_diseases), 0, s$n_diseases)),
-               icon = icon("dna"), color = "green")
-    }
-  })
-  
-  output$query_klhl33 <- renderValueBox({
-    s <- query_summary() %>% filter(gene_symbol == "Klhl33")
-    if (nrow(s) == 0) {
-      valueBox(0, "Klhl33", subtitle = "No significant phenotypes", icon = icon("dna"), color = "purple")
-    } else {
-      valueBox(s$n_sig, "Klhl33",
-               subtitle = paste("Top:", s$top_category, "| Diseases:", ifelse(is.na(s$n_diseases), 0, s$n_diseases)),
-               icon = icon("dna"), color = "purple")
-    }
-  })
-  
-  output$query_comparison <- renderPlotly({
-    df <- data()
-    df$pval_use <- if (input$query_fdr) df$p_adj else df$pvalue
-    
-    comp <- df %>%
-      filter(gene_symbol %in% QUERY_GENES, pval_use <= input$query_pvalue) %>%
-      group_by(gene_symbol, category) %>%
-      summarise(n = n(), .groups = 'drop')
-    
-    if (nrow(comp) == 0) {
-      return(plot_ly() %>% add_annotations(text = "No significant data", showarrow = FALSE))
+    if (input$proc_only_mandatory) {
+      proc_df <- proc_df[!is.na(proc_df$is_mandatory) & proc_df$is_mandatory == TRUE, ]
     }
     
-    plot_ly(comp, x = ~category, y = ~n, color = ~gene_symbol, type = "bar") %>%
-      layout(xaxis = list(title = "Parameter Group", tickangle = -45),
-             yaxis = list(title = "Number of Significant Phenotypes"),
-             barmode = "group")
-  })
-  
-  output$query_table <- renderDT({
-    df <- data()
-    df$pval_use <- if (input$query_fdr) df$p_adj else df$pvalue
+    # Clean up for display
+    proc_df <- proc_df %>%
+      arrange(category, parameter_name) %>%
+      select(Category = category, Parameter = parameter_name, 
+             `Procedure Name` = procedure_name, 
+             `Procedure Description` = procedure_description,
+             Mandatory = is_mandatory)
     
-    disease_summary <- gene_disease_summary()
-    
-    result <- df %>%
-      filter(gene_symbol %in% QUERY_GENES, pval_use <= input$query_pvalue) %>%
-      left_join(disease_summary, by = "gene_accession_id") %>%
-      select(Gene = gene_symbol,
-             `Parameter Group` = category,
-             `Parameter Name` = parameter_name,
-             `P-value` = pval_use,
-             `Disease Association` = n_diseases,
-             `Procedure` = procedure_name) %>%
-      mutate(`P-value` = format(`P-value`, scientific = TRUE, digits = 3),
-             `Disease Association` = ifelse(is.na(`Disease Association`), "No", 
-                                            paste(`Disease Association`, "diseases"))) %>%
-      arrange(Gene, `P-value`)
-    
-    datatable(result, options = list(pageLength = 20, scrollX = TRUE), 
+    datatable(proc_df, options = list(pageLength = 15, scrollX = TRUE), 
               rownames = FALSE, filter = 'top')
+  })
+  
+  # Procedure Info Tab - Statistics
+  output$procedure_stats <- renderText({
+    df <- data()
+    
+    total_params <- n_distinct(df$parameter_id)
+    params_with_proc <- n_distinct(df$parameter_id[!is.na(df$procedure_name)])
+    mandatory_count <- sum(!is.na(df$is_mandatory) & df$is_mandatory == TRUE)
+    
+    paste0(
+      "Total unique parameters: ", total_params, "\n",
+      "Parameters with procedure info: ", params_with_proc, 
+      " (", round(params_with_proc/total_params*100, 1), "%)\n",
+      "Mandatory procedure entries: ", mandatory_count, "\n"
+    )
+  })
+  
+  # Disease Associations
+  output$disease_table <- renderDT({
+    disease_info <- disease_data()
+    
+    if (is.null(disease_info)) {
+      return(datatable(data.frame(Message = "Disease information not available"),
+                      options = list(dom = 't'), rownames = FALSE))
+    }
+    
+    if (input$disease_gene_select == "") {
+      return(datatable(data.frame(Message = "Please select a gene"),
+                      options = list(dom = 't'), rownames = FALSE))
+    }
+    
+    # Get gene accession ID
+    df <- data()
+    gene_info <- df %>%
+      filter(gene_symbol == input$disease_gene_select) %>%
+      select(gene_accession_id) %>%
+      distinct()
+    
+    if (nrow(gene_info) == 0) {
+      return(datatable(data.frame(Message = "Gene not found in dataset"),
+                      options = list(dom = 't'), rownames = FALSE))
+    }
+    
+    # Filter disease info
+    disease_filtered <- disease_info %>%
+      filter(gene_accession_id %in% gene_info$gene_accession_id)
+    
+    if (nrow(disease_filtered) == 0) {
+      return(datatable(data.frame(Message = "No disease associations found for this gene"),
+                      options = list(dom = 't'), rownames = FALSE))
+    }
+    
+    # Format for display
+    disease_display <- disease_filtered %>%
+      select(`Gene` = gene_accession_id, everything())
+    
+    datatable(disease_display, options = list(pageLength = 10, scrollX = TRUE), 
+              rownames = FALSE)
+  })
+  
+  # Disease statistics
+  output$disease_stats <- renderUI({
+    disease_info <- disease_data()
+    
+    if (is.null(disease_info)) {
+      return(tags$p("Disease information not available"))
+    }
+    
+    if (input$disease_gene_select == "") {
+      return(tags$p("Select a gene to view statistics"))
+    }
+    
+    df <- data()
+    gene_info <- df %>%
+      filter(gene_symbol == input$disease_gene_select) %>%
+      select(gene_accession_id) %>%
+      distinct()
+    
+    disease_filtered <- disease_info %>%
+      filter(gene_accession_id %in% gene_info$gene_accession_id)
+    
+    tags$div(
+      tags$p(strong("Gene: "), input$disease_gene_select),
+      tags$p(strong("Number of disease associations: "), nrow(disease_filtered))
+    )
   })
 }
 
-# ============================================================================
-# RUN
-# ============================================================================
+
+# RUN APPLICATION
 
 shinyApp(ui, server)
