@@ -1,9 +1,3 @@
-# ============================================================================
-# IMPC Dashboard - Requirements-Focused (Group 12) - UPDATED v2.0
-# Designed to hit every line of the coursework brief
-# Updated to match corrected database schema and parameter groups
-# ============================================================================
-
 library(shiny)
 library(shinydashboard)
 library(tidyverse)
@@ -14,45 +8,40 @@ library(metap)
 library(pheatmap)
 library(viridis)
 
-# ============================================================================
 # DATA LOADING
-# ============================================================================
 
 source("data_loader_module.R")
 
-# ============================================================================
 # CONFIGURATION
-# ============================================================================
 
 QUERY_GENES <- c("Smarcd3", "Ppp3cc", "Rab12", "Klhl33")
 DEFAULT_THRESHOLD <- 0.05
 
-# UPDATED: Parameter group colors to match new 8-group schema
-# These correspond to the Parameter_Groups table in MySQL database
+# Parameter group colors matching database Parameter_Groups table
 GROUP_COLORS <- c(
-  'Housing & Environment' = '#deb887',      # Burlywood - environmental factors
-  'Structural Phenotype' = '#ff1493',       # Hot pink - physical measurements
-  'Clinical Chemistry/Blood' = '#ff0000',   # Red - blood/hematology
-  'Embryo & Development' = '#ff69b4',       # Pink - developmental biology
-  'Limb Function & Performance' = '#4169e1',# Royal blue - motor function
-  'Behavioral & Neurological' = '#00bfff',  # Deep sky blue - brain/behavior
-  'Cardiovascular & ECG' = '#8b0000',       # Dark red - heart function
-  'Other' = '#696969'                       # Dim gray - miscellaneous
+  'Housing & Environment' = '#deb887',
+  'Structural Phenotype' = '#ff1493',
+  'Clinical Chemistry/Blood' = '#ff0000',
+  'Embryo & Development' = '#ff69b4',
+  'Limb Function & Performance' = '#4169e1',
+  'Behavioral & Neurological' = '#00bfff',
+  'Cardiovascular & ECG' = '#8b0000',
+  'Other' = '#696969'
 )
 
-# ============================================================================
-# HELPER FUNCTIONS
-# ============================================================================
 
+# HELPER FUNCTIONS
+
+# Combine multiple p-values using Fisher's method (sumlog)
+# Used when multiple tests exist for same gene-parameter combination
 combine_pvalue <- function(pvals) {
-  pvals[pvals == 0] <- 1e-10
+  pvals[pvals == 0] <- 1e-10  # Replace exact zeros to avoid log(0)
   if (length(pvals) < 2) return(pvals[1])
   else return(sumlog(pvals)$p)
 }
 
-# ============================================================================
-# UI
-# ============================================================================
+
+# DASHBOARD USER INTERFACE
 
 ui <- dashboardPage(
   dashboardHeader(title = "IMPC Dashboard"),
@@ -60,23 +49,16 @@ ui <- dashboardPage(
   dashboardSidebar(
     sidebarMenu(
       menuItem("Overview", tabName = "overview", icon = icon("home")),
-      menuItem("Gene Analysis", tabName = "gene", icon = icon("dna")), 
-               # badgeLabel = "Req 1", badgeColor = "green"),
+      menuItem("Gene Analysis", tabName = "gene", icon = icon("dna")),
       menuItem("Phenotype Analysis", tabName = "phenotype", icon = icon("chart-bar")),
-               # badgeLabel = "Req 2", badgeColor = "green"),
       menuItem("Gene Clustering", tabName = "clustering", icon = icon("project-diagram")),
-               # badgeLabel = "Req 3", badgeColor = "green"),
       menuItem("Four Query Genes", tabName = "query_genes", icon = icon("star"))
-               # badgeLabel = "Req 4", badgeColor = "green")
     )
   ),
   
   dashboardBody(
     tabItems(
-      
-      # =====================================================================
-      # OVERVIEW TAB - Parameter Space Reduction
-      # =====================================================================
+      # OVERVIEW TAB
       tabItem(
         tabName = "overview",
         h2("Overview: Parameter Space Reduction"),
@@ -104,14 +86,11 @@ ui <- dashboardPage(
               DTOutput("overview_table"))
         )
       ),
-      
-      # =====================================================================
-      # GENE ANALYSIS - Requirement 1
-      # =====================================================================
+      # GENE ANALYSIS
       tabItem(
         tabName = "gene",
-        h2("Requirement 1: Gene-Centric Visualisation"),
-        p(strong("Purpose:"), " Select a knockout mouse and visualize statistical scores of all phenotypes tested. 
+        h2("Gene-Centric Visualisation"),
+        p(strong("Purpose:"), " Select a knockout mouse and visualise statistical scores of all phenotypes tested. 
           Shows which phenotypes are significantly affected by the gene knockout."),
         
         fluidRow(
@@ -146,14 +125,11 @@ ui <- dashboardPage(
           )
         )
       ),
-      
-      # =====================================================================
-      # PHENOTYPE ANALYSIS - Requirement 2
-      # =====================================================================
+      # PHENOTYPE ANALYSIS
       tabItem(
         tabName = "phenotype",
-        h2("Requirement 2: Phenotype-Centric Visualisation"),
-        p(strong("Purpose:"), " Select a phenotype and visualize statistical scores of all knockout mice. 
+        h2("Phenotype-Centric Visualisation"),
+        p(strong("Purpose:"), " Select a phenotype and visualise statistical scores of all knockout mice. 
           Shows which genes are significantly associated with that phenotype."),
         
         fluidRow(
@@ -185,13 +161,10 @@ ui <- dashboardPage(
           )
         )
       ),
-      
-      # =====================================================================
-      # CLUSTERING - Requirement 3
-      # =====================================================================
+      # CLUSTERING
       tabItem(
         tabName = "clustering",
-        h2("Requirement 3: Gene Clustering Based on Phenotype Profiles"),
+        h2("Gene Clustering Based on Phenotype Profiles"),
         p(strong("Purpose:"), " Identify clusters of genes with similar phenotype scores. 
           Genes in the same cluster have similar biological effects."),
         
@@ -230,10 +203,7 @@ ui <- dashboardPage(
           )
         )
       ),
-      
-      # =====================================================================
-      # FOUR QUERY GENES - Requirement 4
-      # =====================================================================
+      # FOUR QUERY GENES
       tabItem(
         tabName = "query_genes",
         h2("The Four Genotypes of Interest"),
@@ -274,20 +244,17 @@ ui <- dashboardPage(
   )
 )
 
-# ============================================================================
-# SERVER
-# ============================================================================
+
+# SERVER LOGIC
 
 server <- function(input, output, session) {
   
-  # ========================================================================
   # DATA LOADING & PREPARATION
-  # ========================================================================
   
+  # Load main phenotype data and add FDR correction
   data <- reactive({
     df <- load_data()
     
-    # Add FDR correction
     df <- df %>%
       mutate(p_adj = p.adjust(pvalue, method = "BH"),
              is_query = gene_symbol %in% QUERY_GENES)
@@ -295,7 +262,8 @@ server <- function(input, output, session) {
     return(df)
   })
   
-  # Try to load disease information, with robust column normalisation
+  # Load disease information with robust column name normalisation
+  # Handles various naming conventions from different data sources
   disease_data <- reactive({
     tryCatch({
       disease <- read.csv(CSV_FILES$disease, header = TRUE, stringsAsFactors = FALSE)
@@ -307,7 +275,7 @@ server <- function(input, output, session) {
         }
       }
       
-      # Normalise disease term column name
+      # Normalise disease term column name (multiple possible variants)
       if (!"disease_term" %in% names(disease)) {
         if ("DISEASE_TERM" %in% names(disease)) {
           disease <- dplyr::rename(disease, disease_term = DISEASE_TERM)
@@ -331,7 +299,7 @@ server <- function(input, output, session) {
     })
   })
   
-  # Gene-disease summary (robust to missing disease_term)
+  # Summarise disease associations per gene
   gene_disease_summary <- reactive({
     disease <- disease_data()
     if (nrow(disease) == 0 || !"gene_accession_id" %in% names(disease)) {
@@ -355,12 +323,11 @@ server <- function(input, output, session) {
       )
   })
   
-  # Initialise dropdowns
+  # Initialise dropdown menus with actual data from loaded dataset
   observe({
     df <- data()
     
-    # UPDATED: Use actual categories from data (works with both CSV and database)
-    # This ensures dropdown matches whatever groups are in the loaded data
+    # Use actual categories from loaded data (works with both CSV and database)
     actual_categories <- sort(unique(as.character(df$category)))
     cats <- c("All" = "all", setNames(actual_categories, actual_categories))
     
@@ -380,7 +347,7 @@ server <- function(input, output, session) {
     updateSelectInput(session, "gene_select", choices = genes)
   })
   
-  # Update phenotype parameters when category changes
+  # Update parameter dropdown when category selection changes
   observeEvent(input$pheno_category, {
     df <- data()
     if (input$pheno_category == "all") {
@@ -391,9 +358,8 @@ server <- function(input, output, session) {
     updateSelectInput(session, "pheno_parameter", choices = params)
   })
   
-  # ========================================================================
+  
   # OVERVIEW TAB
-  # ========================================================================
   
   output$total_genes <- renderValueBox({
     valueBox(n_distinct(data()$gene_symbol), "Total Genes", icon = icon("dna"), color = "blue")
@@ -448,10 +414,10 @@ server <- function(input, output, session) {
     datatable(df, options = list(pageLength = 20), rownames = FALSE)
   })
   
-  # ========================================================================
-  # GENE ANALYSIS TAB
-  # ========================================================================
   
+  # GENE ANALYSIS TAB
+  
+  # Parse custom gene list from textarea input
   gene_custom_list <- reactive({
     if (is.null(input$gene_custom) || trimws(input$gene_custom) == "") return(NULL)
     genes <- unlist(strsplit(input$gene_custom, "\n"))
@@ -459,10 +425,11 @@ server <- function(input, output, session) {
     genes[genes != ""]
   })
   
+  # Filter and prepare data for gene-centric analysis
   gene_data <- reactive({
     df <- data()
     
-    # Filter by gene
+    # Apply gene filter (custom list takes precedence over dropdown)
     custom <- gene_custom_list()
     if (!is.null(custom) && length(custom) > 0) {
       df <- df[df$gene_symbol %in% custom, ]
@@ -470,14 +437,14 @@ server <- function(input, output, session) {
       df <- df[df$gene_combined == input$gene_select, ]
     }
     
-    # Apply other filters
+    # Apply additional filters
     if (input$gene_category != "all") df <- df[df$category == input$gene_category, ]
     if (input$gene_strain != "all") df <- df[df$mouse_strain == input$gene_strain, ]
     if (input$gene_lifestage != "all") df <- df[df$mouse_life_stage == input$gene_lifestage, ]
     
     if (nrow(df) == 0) return(NULL)
     
-    # Combine p-values using Fisher's method
+    # Combine p-values for same gene-parameter pairs using Fisher's method
     df_combined <- df %>%
       group_by(gene_symbol, parameter_id, parameter_name, category) %>%
       summarise(pvalue = combine_pvalue(pvalue),
@@ -486,11 +453,12 @@ server <- function(input, output, session) {
                 gene_accession_id = first(gene_accession_id),
                 .groups = 'drop')
     
-    # Add disease information
+    # Add disease information via left join
     disease_summary <- gene_disease_summary()
     df_combined <- df_combined %>%
       left_join(disease_summary, by = "gene_accession_id")
     
+    # Select p-value based on FDR correction checkbox
     df_combined$pval_use <- if (input$gene_fdr) df_combined$p_adj else df_combined$pvalue
     df_combined$neg_log10 <- -log10(df_combined$pval_use)
     
@@ -548,10 +516,10 @@ server <- function(input, output, session) {
     datatable(summary, options = list(pageLength = 10, scrollX = TRUE), rownames = FALSE)
   })
   
-  # ========================================================================
-  # PHENOTYPE ANALYSIS TAB
-  # ========================================================================
   
+  # PHENOTYPE ANALYSIS TAB
+  
+  # Display parameter details in sidebar
   output$pheno_details <- renderUI({
     req(input$pheno_parameter)
     df <- data()
@@ -571,6 +539,7 @@ server <- function(input, output, session) {
     )
   })
   
+  # Filter and prepare data for phenotype-centric analysis
   pheno_data <- reactive({
     req(input$pheno_parameter)
     df <- data()
@@ -578,14 +547,14 @@ server <- function(input, output, session) {
     df <- df[df$parameter_combined == input$pheno_parameter, ]
     if (nrow(df) == 0) return(NULL)
     
-    # Combine per gene
+    # Combine p-values per gene using Fisher's method
     df_combined <- df %>%
       group_by(gene_symbol, gene_accession_id) %>%
       summarise(pvalue = combine_pvalue(pvalue),
                 p_adj = combine_pvalue(p_adj),
                 .groups = 'drop')
     
-    # Add disease info
+    # Add disease information
     disease_summary <- gene_disease_summary()
     df_combined <- df_combined %>%
       left_join(disease_summary, by = "gene_accession_id")
@@ -605,6 +574,7 @@ server <- function(input, output, session) {
     
     df$sig <- ifelse(df$pval_use <= input$pheno_pvalue, "Significant", "Not Significant")
     
+    # Color points based on disease link or significance
     if (input$pheno_highlight_disease) {
       df$color_group <- ifelse(df$has_disease, "Disease-linked", "No disease link")
       colors <- c("Disease-linked" = "red", "No disease link" = "grey")
@@ -656,10 +626,10 @@ server <- function(input, output, session) {
     datatable(summary, options = list(pageLength = 10, scrollX = TRUE), rownames = FALSE)
   })
   
-  # ========================================================================
-  # CLUSTERING TAB
-  # ========================================================================
   
+  # CLUSTERING TAB
+  
+  # Prepare data matrix for UMAP and k-means clustering
   cluster_data <- reactive({
     df <- data()
     
@@ -673,7 +643,7 @@ server <- function(input, output, session) {
     
     if (nrow(df) == 0) return(NULL)
     
-    # Build matrix
+    # Combine p-values and create binary matrix (significant = 1, not = 0)
     df_combined <- df %>%
       group_by(gene_symbol, parameter_id) %>%
       summarise(pvalue = combine_pvalue(pval_use), .groups = 'drop')
@@ -689,11 +659,11 @@ server <- function(input, output, session) {
     
     if (nrow(mat) < 3 || ncol(mat) < 2) return(NULL)
     
-    # Remove constant columns
+    # Remove constant columns (no clustering information)
     mat <- mat[, apply(mat, 2, function(x) length(unique(x)) > 1)]
     if (ncol(mat) < 2) return(NULL)
     
-    # ---- SAFE UMAP CONFIG (fix for "n_neighbors must be smaller than number of items") ----
+    # Configure UMAP with safe n_neighbors (must be < number of samples)
     n_genes <- nrow(mat)
     n_neighbors <- max(2, min(15, n_genes - 1))
     umap_config <- umap::umap.defaults
@@ -705,13 +675,12 @@ server <- function(input, output, session) {
       error = function(e) NULL
     )
     if (is.null(umap_res)) return(NULL)
-    # ----------------------------------------------------------------------    
     
-    # K-means
+    # Perform k-means clustering
     k <- min(input$cluster_k, nrow(mat) - 1)
     km_res <- kmeans(mat, centers = k, nstart = 25)
     
-    # Result
+    # Combine results into dataframe
     result_df <- data.frame(
       gene = rownames(mat),
       x = umap_res$layout[,1],
@@ -736,17 +705,17 @@ server <- function(input, output, session) {
     
     df <- obj$df
     
-    # Base scatter: all genes coloured by cluster
+    # Base scatter plot with genes colored by cluster
     p <- plot_ly(
       data  = df,
       x     = ~x,
       y     = ~y,
       type  = "scatter",
       mode  = "markers",
-      color = ~cluster,                      # cluster -> colour
-      colors = "Set1",                       # or viridis if you prefer
-      size  = ~pmin(n_sig, 10),        # dynamic size mapping
-      sizes = c(4, 14),                # min/max size of points
+      color = ~cluster,
+      colors = "Set1",
+      size  = ~pmin(n_sig, 10),
+      sizes = c(4, 14),
       marker = list(opacity = 0.8),
       text = ~paste0(
         "<b>Gene:</b> ", gene,
@@ -756,11 +725,10 @@ server <- function(input, output, session) {
       hoverinfo = "text"
     )
     
-    # Optional: highlight query genes on top
+    # Add highlighting for query genes if checkbox selected
     if (input$cluster_highlight_query) {
       query_df <- df[df$is_query, ]
       if (nrow(query_df) > 0) {
-        # thicker red outline, keep fill = cluster colour
         p <- p %>%
           add_markers(
             data = query_df,
@@ -768,7 +736,7 @@ server <- function(input, output, session) {
             y    = ~y,
             marker = list(
               size = 10,
-              color = "rgba(0,0,0,0)",              # transparent fill
+              color = "rgba(0,0,0,0)",
               line  = list(color = "red", width = 2)
             ),
             hoverinfo  = "none",
@@ -801,6 +769,7 @@ server <- function(input, output, session) {
       return()
     }
     
+    # Calculate Pearson correlation between genes
     cor_mat <- cor(t(obj$matrix), method = "pearson")
     pheatmap(cor_mat, clustering_distance_rows = "euclidean",
              clustering_distance_cols = "euclidean",
@@ -822,15 +791,14 @@ server <- function(input, output, session) {
       formatStyle('Query Gene', backgroundColor = styleEqual(c(TRUE, FALSE), c('yellow', 'white')))
   })
   
-  # ========================================================================
-  # FOUR QUERY GENES TAB
-  # ========================================================================
   
+  # FOUR QUERY GENES TAB
+  
+  # Summarise significant phenotypes for each query gene
   query_summary <- reactive({
     df <- data()
     df$pval_use <- if (input$query_fdr) df$p_adj else df$pvalue
     
-    # Get disease info
     disease_summary <- gene_disease_summary()
     
     summary <- df %>%
@@ -933,26 +901,7 @@ server <- function(input, output, session) {
   })
 }
 
-# ============================================================================
-# RUN APPLICATION
-# ============================================================================
 
-# Print startup message
-cat("\n")
-cat("============================================\n")
-cat("IMPC DASHBOARD v2.0 - STARTING\n")
-cat("============================================\n")
-cat("Updated to work with corrected schema:\n")
-cat("  ✓ 8 parameter groups (from Parameter_Groups table)\n")
-cat("  ✓ Compatible with both CSV and database sources\n")
-cat("  ✓ Dynamic category detection\n")
-cat("\n")
-cat("Parameter Groups:\n")
-for (group in names(GROUP_COLORS)) {
-  cat(sprintf("  • %s\n", group))
-}
-cat("\n")
-cat("Starting Shiny application...\n")
-cat("============================================\n\n")
+# RUN APPLICATION
 
 shinyApp(ui, server)
