@@ -205,29 +205,37 @@ load_data_from_database <- function() {
   
   cat("  Connected to database successfully\n")
   
-  # CORRECTED QUERY based on your SQL schema
-  # Table names: Genes, Analysis, Parameters, Parameter_Groups, MouseCharacteristics, Procedures
+  # CORRECTED QUERY based on actual database schema (v3.0)
+  # Table names: Genes, Analysis, Parameters, Parameter_Groups, Procedures, Diseases
+  # FIXED: Removed non-existent MouseCharacteristics table
+  # FIXED: parameter_name comes from Parameters (P), not Genes (G)
+  # FIXED: mouse_strain and mouse_life_stage are directly in Analysis (A)
+  # ADDED: Disease associations for better dashboard integration
   query <- "
     SELECT 
       A.analysis_key_id AS analysis_id,
       A.pvalue,
+      A.analysis_id AS original_analysis_id,
       G.gene_accession_id,
       G.gene_symbol,
       P.IMPC_parameter_id AS parameter_id,
-      G.parameter_name,
+      P.parameter_name,
       PG.group_name AS category,
       P.parameter_description,
       PROC.procedure_name,
       PROC.procedure_description,
       PROC.mandatory AS is_mandatory,
-      MC.mouse_strain,
-      MC.mouse_life_stage
+      A.mouse_strain,
+      A.mouse_life_stage,
+      D.disease_name,
+      D.DO_ID,
+      D.omim_ids
     FROM Analysis A
     INNER JOIN Genes G ON G.gene_id = A.gene_id
     INNER JOIN Parameters P ON P.parameter_id = A.parameter_id
     LEFT JOIN Parameter_Groups PG ON P.group_id = PG.group_id
-    LEFT JOIN MouseCharacteristics MC ON MC.mouse_id = A.mouse_id
-    LEFT JOIN Procedures PROC ON P.IMPC_parameter_origin_id = PROC.IMPC_parameter_origin_id
+    LEFT JOIN Procedures PROC ON P.IMPC_procedure_id = PROC.IMPC_procedure_id
+    LEFT JOIN Diseases D ON G.gene_accession_id = D.gene_accession_id
   "
   
   cat("  Executing query...\n")
@@ -360,13 +368,18 @@ GROUP_COLORS <- c(
 # ============================================================================
 
 cat("============================================\n")
-cat("DATA LOADER MODULE LOADED (UPDATED v2.0)\n")
+cat("DATA LOADER MODULE LOADED (v3.0 - CORRECTED)\n")
 cat("============================================\n")
 cat("Current data source:", toupper(DATA_SOURCE), "\n")
 cat("Database name:", DB_CONFIG$dbname, "\n")
 cat("Procedure information: ENABLED\n\n")
 
-cat("UPDATES IN THIS VERSION:\n")
+cat("UPDATES IN THIS VERSION (v3.0):\n")
+cat("  ✓ CRITICAL FIX: Removed non-existent MouseCharacteristics table\n")
+cat("  ✓ CRITICAL FIX: parameter_name now from Parameters (P), not Genes (G)\n")
+cat("  ✓ CRITICAL FIX: mouse_strain and mouse_life_stage from Analysis (A)\n")
+cat("  ✓ OPTIMIZATION: Changed Procedures join to use direct FK\n")
+cat("  ✓ ENHANCEMENT: Added Disease associations to query\n")
 cat("  ✓ Updated parameter groups to match SQL schema:\n")
 cat("    - Housing & Environment\n")
 cat("    - Structural Phenotype\n")
@@ -375,11 +388,7 @@ cat("    - Embryo & Development\n")
 cat("    - Limb Function & Performance\n")
 cat("    - Behavioral & Neurological\n")
 cat("    - Cardiovascular & ECG\n")
-cat("    - Other\n")
-cat("  ✓ Fixed database query to match actual table schema\n")
-cat("  ✓ Corrected table names: Genes, Parameters, Parameter_Groups\n")
-cat("  ✓ Added proper joins for MouseCharacteristics and Procedures\n")
-cat("  ✓ Updated GROUP_COLORS for new categories\n\n")
+cat("    - Other\n\n")
 
 cat("TO SWITCH TO DATABASE:\n")
 cat("  1. Update DB_CONFIG at top of file with your credentials\n")
