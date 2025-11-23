@@ -9,7 +9,7 @@ library(pheatmap)
 library(viridis)
 
 # DATA LOADING
-
+# Make sure the "data_loader_module.R" is in the same directory as the impc_dashboard script
 source("data_loader_module.R")
 
 # CONFIGURATION
