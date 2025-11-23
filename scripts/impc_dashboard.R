@@ -17,8 +17,8 @@ source("data_loader_module.R")
 QUERY_GENES <- c("Smarcd3", "Ppp3cc", "Rab12", "Klhl33")
 DEFAULT_THRESHOLD <- 0.05
 
-# Parameter group colors matching database Parameter_Groups table
-GROUP_COLORS <- c(
+# Parameter group colours matching database Parameter_Groups table
+GROUP_COLOURS <- c(
   'Housing & Environment' = '#deb887',
   'Structural Phenotype' = '#ff1493',
   'Clinical Chemistry/Blood' = '#ff0000',
@@ -382,7 +382,7 @@ server <- function(input, output, session) {
       arrange(desc(n_params))
     
     plot_ly(df, x = ~reorder(category, n_params), y = ~n_params, type = "bar",
-            marker = list(color = ~category, colors = GROUP_COLORS)) %>%
+            marker = list(color = ~category, colors = GROUP_COLOURS)) %>%
       layout(xaxis = list(title = "", tickangle = -45),
              yaxis = list(title = "Number of Parameters"),
              showlegend = FALSE)
@@ -396,7 +396,7 @@ server <- function(input, output, session) {
       arrange(desc(n_sig))
     
     plot_ly(df, x = ~reorder(category, n_sig), y = ~n_sig, type = "bar",
-            marker = list(color = ~category, colors = GROUP_COLORS)) %>%
+            marker = list(color = ~category, colors = GROUP_COLOURS)) %>%
       layout(xaxis = list(title = "", tickangle = -45),
              yaxis = list(title = "Significant Associations (p≤0.05)"),
              showlegend = FALSE)
@@ -475,7 +475,7 @@ server <- function(input, output, session) {
     
     plot_ly(df, x = ~seq_along(parameter_name), y = ~neg_log10,
             type = 'scatter', mode = 'markers',
-            marker = list(size = 8, color = ~category, colors = GROUP_COLORS,
+            marker = list(size = 8, color = ~category, colors = GROUP_COLOURS,
                           line = list(color = ~ifelse(sig == "Significant", "red", "white"), width = 2)),
             text = ~paste0("<b>Parameter:</b> ", parameter_name,
                            "<br><b>Group:</b> ", category,
@@ -574,7 +574,7 @@ server <- function(input, output, session) {
     
     df$sig <- ifelse(df$pval_use <= input$pheno_pvalue, "Significant", "Not Significant")
     
-    # Color points based on disease link or significance
+    # Colour points based on disease link or significance
     if (input$pheno_highlight_disease) {
       df$color_group <- ifelse(df$has_disease, "Disease-linked", "No disease link")
       colors <- c("Disease-linked" = "red", "No disease link" = "grey")
@@ -705,7 +705,7 @@ server <- function(input, output, session) {
     
     df <- obj$df
     
-    # Base scatter plot with genes colored by cluster
+    # Base scatter plot with genes coloured by cluster
     p <- plot_ly(
       data  = df,
       x     = ~x,

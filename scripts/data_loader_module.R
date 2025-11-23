@@ -240,10 +240,10 @@ load_data <- function(source = DATA_SOURCE, include_procedure = TRUE) {
 }
 
 
-# PARAMETER GROUP COLOR SCHEME
-# Colors used in dashboard visualisations
+# PARAMETER GROUP COLOUR SCHEME
+# Colours used in dashboard visualisations
 
-GROUP_COLORS <- c(
+GROUP_COLOURS <- c(
   'Housing & Environment' = '#deb887',
   'Structural Phenotype' = '#ff1493',
   'Clinical Chemistry/Blood' = '#ff0000',
