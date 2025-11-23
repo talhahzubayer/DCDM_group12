@@ -9,7 +9,7 @@ DATA_SOURCE <- "database"
 
 # CSV file paths
 CSV_FILES <- list(
-  phenotype = "C:/Users/Talhah Zubayer/Documents/DCDM_group12/data/processed/clean_table_final_UPPERCASE.csv",
+  phenotype = "C:/Users/Talhah Zubayer/Documents/DCDM_group12/data/processed/GROUP12_clean_table_final.csv",
   disease = "C:/Users/Talhah Zubayer/Documents/DCDM_group12/data/processed/Disease_information_cleaned.csv",
   parameter = "C:/Users/Talhah Zubayer/Documents/DCDM_group12/data/processed/IMPC_parameter_description_cleaned.csv",
   procedure = "C:/Users/Talhah Zubayer/Documents/DCDM_group12/data/processed/IMPC_procedure_cleaned.csv"
