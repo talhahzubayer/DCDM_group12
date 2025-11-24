@@ -87,15 +87,12 @@ scripts/
 
 #### Step 4: Import the Database Dump File
 1. Right-click on the newly created `DCDM_CW1_GROUP12` database
-2. Select **Tools** → **Execute SQL Script**
-3. Click the folder icon to browse for the SQL file
+2. Select **Tools** → **Restore Database**
+3. In the restore dialog, click **Browse** to locate the dump file
 4. Navigate to your project's `database/` folder and select `DCDM_CW1_GROUP12.sql`
-5. Ensure the following settings:
-   - **Database**: `DCDM_CW1_GROUP12` is selected
-   - **Stop on error**: Unchecked (recommended)
-6. Click **Start**
-7. Wait for the import to complete (this may take a few minutes)
-8. You should see a success message indicating all SQL statements were executed
+5. Click **Start** to begin the restoration process
+6. Wait for the import to complete (this may take a few minutes)
+7. You should see a success message indicating the database was restored successfully
 
 #### Step 5: Verify the Import
 1. In the **Database Navigator**, expand the `DCDM_CW1_GROUP12` database
@@ -116,7 +113,21 @@ scripts/
 ### Prerequisites
 - Local MySQL database set up with DBeaver (see previous section)
 - R and RStudio installed
-- Required R packages: `RMySQL`, `DBI`, `shiny`
+- Required R packages:
+  - `tidyverse`       # Includes dplyr, tidyr, readr, etc.
+  - `RMySQL`          # For database connectivity
+  - `shiny`           # For dashboard interface
+  - `shinydashboard`  # For dashboard layout
+  - `plotly`          # For interactive plots
+  - `DT`              # For interactive tables
+  - `umap`            # For gene clustering
+  - `metap`           # For Fisher's method p-value combination
+
+You can install all required packages at once with:
+```r
+install.packages(c("tidyverse", "RMySQL", "shiny", "shinydashboard", 
+                   "plotly", "DT", "umap", "metap"))
+```
 
 ### Step-by-Step Instructions
 
