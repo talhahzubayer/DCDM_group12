@@ -182,4 +182,23 @@ To switch back to using CSV files instead of the database:
 3. Save the file and restart the dashboard
 
 
+## RShiny Dashboard
+
+### Gene Analysis Tab
+<img width="1919" height="804" alt="image" src="https://github.com/user-attachments/assets/4319c021-293a-46e1-8d2f-c72726240a49" />
+
+### Phenotype Analysis Tab
+<img width="1919" height="833" alt="image" src="https://github.com/user-attachments/assets/2e289b44-ca3d-4c07-ab47-bcf3110bd9d8" />
+
+### Gene Clustering Tab
+<img width="1919" height="928" alt="image" src="https://github.com/user-attachments/assets/09e1a960-90fa-4687-b6e2-2fe9bca68745" />
+
+### Four Query Genes Tab
+<img width="1919" height="973" alt="image" src="https://github.com/user-attachments/assets/800a7d86-fbae-40fb-9e1b-619979e85a64" />
+
+
+
+
+
+
 
