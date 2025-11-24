@@ -114,14 +114,14 @@ scripts/
 - Local MySQL database set up with DBeaver (see previous section)
 - R and RStudio installed
 - Required R packages:
-  - `tidyverse`       # Includes dplyr, tidyr, readr, etc.
-  - `RMySQL`          # For database connectivity
-  - `shiny`           # For dashboard interface
-  - `shinydashboard`  # For dashboard layout
-  - `plotly`          # For interactive plots
-  - `DT`              # For interactive tables
-  - `umap`            # For gene clustering
-  - `metap`           # For Fisher's method p-value combination
+  - `tidyverse`       - includes dplyr, tidyr, readr, etc.
+  - `RMySQL`          - for database connectivity
+  - `shiny`           - for dashboard interface
+  - `shinydashboard`  - for dashboard layout
+  - `plotly`          - for interactive plots
+  - `DT`              - for interactive tables
+  - `umap`            - for gene clustering
+  - `metap`           - for Fisher's method p-value combination
 
 You can install all required packages at once with:
 ```r
