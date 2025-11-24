@@ -1,0 +1,2 @@
+"gene_accession_id","gene_symbol","mouse_strain","mouse_life_stage","parameter_id","pvalue","parameter_name","analysis_id"
+"MGI:2444611","Ipo8","C57BL","Early adult","HRWLLA_HEM_030_001","0.4848025","Neutrophil cell count","u32858g37vy9148"

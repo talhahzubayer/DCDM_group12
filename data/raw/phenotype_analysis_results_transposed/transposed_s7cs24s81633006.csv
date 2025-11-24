@@ -1,0 +1,2 @@
+"gene_accession_id","gene_symbol","mouse_strain","mouse_life_stage","parameter_id","pvalue","parameter_name","analysis_id"
+"MGI:1914109","Slc16a9","C57BL","Early adult","MGP_IMM_066_001","0.2763204","CD11b-high cDC - % of cDC","s7cs24s81633006"

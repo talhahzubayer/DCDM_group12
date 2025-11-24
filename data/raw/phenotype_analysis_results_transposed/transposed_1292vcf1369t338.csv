@@ -1,0 +1,2 @@
+"Gene_accession_id","Gene_symbol","mouse_strain","Mouse_life_stage","Parameter_id","Pvalue","parameter_name","Analysis_id"
+"MGI:2444308","Atg4d","C57BL","Early adult","IMPC_HEM_019_001","0.3990114","Mean platelet volume","1292vcf1369t338"

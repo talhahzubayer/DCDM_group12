@@ -1,0 +1,2 @@
+"gene_accession_id","gene_symbol","mouse_strain","mouse_life_stage","parameter_id","pvalue","parameter_name","analysis_id"
+"MGI:1276533","Ncoa2","C57BL","Early adult","IMPC_ABR_002_001","2.881929e-06","Click-evoked ABR threshold","r51z6381i73fqpk"

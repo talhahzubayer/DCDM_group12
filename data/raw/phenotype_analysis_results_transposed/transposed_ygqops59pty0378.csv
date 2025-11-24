@@ -1,0 +1,2 @@
+"gene_accession_id","gene_symbol","mouse_strain","mouse_life_stage","parameter_id","pvalue","parameter_name","analysis_id"
+"MGI:1344333","Mid2","C57BL",NA,"IMPC_ACS_035_001","0.4604503","% Pre-pulse inhibition - PPI3","ygqops59pty0378"

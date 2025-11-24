@@ -1,0 +1,2 @@
+"parameter_id","gene_accession_id","analysis_id","gene_symbol","mouse_life_stage","pvalue","parameter_name","mouse_strain"
+"IMPC_HEM_033_001","MGI:2146468","m0j6czv09017143","Urb1","Early adult","0.9355511","Monocyte differential count","C57BL"

@@ -1,0 +1,2 @@
+"gene_accession_id","Gene_symbol","mouse_strain","Mouse_life_stage","parameter_id","pvalue","parameter_name","analysis_id"
+"MGI:1336186","Agpat3","129SV","Early adult","IMPC_ABR_008_001","0.7201516","18kHz-evoked ABR Threshold","cqf03h4827l364z"

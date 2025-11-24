@@ -1,0 +1,2 @@
+"gene_accession_id","gene_symbol","mouse_strain","mouse_life_stage","parameter_id","pvalue","parameter_name","analysis_id"
+"MGI:97525","Pde6b","C3H","Early adult","IMPC_ABR_006_001","0.9580107","12kHz-evoked ABR Threshold","o4r6ne4151a68ps"

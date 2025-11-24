@@ -1,0 +1,2 @@
+"gene_accession_id","gene_symbol","mouse_strain","mouse_life_stage","parameter_id","pvalue","parameter_name","analysis_id"
+"MGI:88587","Cyp19a1","C57BL","Middle aged adult","IMPC_ACS_034_001","0.1432367","% Pre-pulse inhibition - PPI2","su8a40c6y18lm8j"

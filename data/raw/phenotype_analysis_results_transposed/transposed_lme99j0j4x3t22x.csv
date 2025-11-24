@@ -1,0 +1,2 @@
+"gene_accession_id","gene_symbol","mouse_strain","mouse_life_stage","parameter_id","pvalue","parameter_name","analysis_id"
+"MGI:107536","Lgals4","C57BL","Early adult","IMPC_GRS_008_001","0.6064381","Forelimb grip strength measurement mean","lme99j0j4x3t22x"

@@ -1,0 +1,2 @@
+"gene_accession_id","gene_symbol","mouse_strain","mouse_life_stage","parameter_id","pvalue","parameter_name","analysis_id"
+"MGI:1344333","Mid2","C57BL",NA,"IMPC_GRS_010_001","0.7616097","Forelimb grip strength normalised against body weight","i4mc38i1a2p6op6"

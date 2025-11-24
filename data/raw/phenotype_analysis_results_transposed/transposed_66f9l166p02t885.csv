@@ -1,0 +1,2 @@
+"gene_accession_id","gene_symbol","mouse_strain","mouse_life_stage","parameter_id","pvalue","parameter_name","analysis_id"
+"MGI:1914109","Slc16a9","C57BL","Early adult","IMPC_ABR_004_001","0.6391983","6kHz-evoked ABR Threshold","66f9l166p02t885"

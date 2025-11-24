@@ -1,0 +1,2 @@
+"gene_accession_id","analysis_id","parameter_id","gene_symbol","mouse_strain","pvalue","mouse_life_stage","parameter_name"
+"MGI:2682314","a6m66z10448t35u","HRWLLA_OFD_018_001","Zc3h4","C57BL","0.7345802","Early adult","Latency to center entry"

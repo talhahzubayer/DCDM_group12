@@ -1,0 +1,2 @@
+"gene_accession_id","gene_symbol","mouse_strain","mouse_life_stage","parameter_id","pvalue","parameter_name","analysis_id"
+"MGI:1925927","Rnf20","C57BL","E9.5","IMPC_ABR_008_001","0.3121134","18kHz-evoked ABR Threshold","06ci0d4833w2043"

@@ -1,0 +1,2 @@
+"gene_accession_id","gene_symbol","mouse_strain","mouse_life_stage","parameter_id","pvalue","parameter_name","analysis_id"
+"MGI:1918946","ABHD8","C55BL","Early adult","MGP_IMM_101_001","0.1172041","KLRG1+ NK cells - % of CD45+","gbiq3n277doma44"

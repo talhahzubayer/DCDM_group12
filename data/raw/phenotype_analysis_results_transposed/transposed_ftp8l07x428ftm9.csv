@@ -1,0 +1,2 @@
+"gene_accession_id","analysis_id","parameter_id","gene_symbol","mouse_life_stage","parameter_name","pvalue","mouse_strain"
+"MGI:1914243","ftp8l07x428ftm9","HRWLLA_HEM_035_001","Smarcd3","E18.5","Eosinophil differential count","0.2433503","C57BL"
