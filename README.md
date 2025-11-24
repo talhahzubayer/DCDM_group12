@@ -145,8 +145,8 @@ DB_CONFIG <- list(
   host = "localhost",              # Change if your MySQL server is on a different host
   port = 3306,					   # Default MySQL port
   dbname = "DCDM_CW1_GROUP12",     # Database name should match what you created in DBeaver
-  user = "your_username,           # Replace with your MySQL username from DBeaver
-  password = "your_password"       # # Replace with your MySQL password from DBeaver
+  user = "your_username",          # Replace with your MySQL username from DBeaver
+  password = "your_password"       # Replace with your MySQL password from DBeaver
 )
 ```
 
