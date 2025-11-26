@@ -28,8 +28,8 @@ GROUP_COLOURS <- c(
 )
 
 # HELPER FUNCTION - fisher's method for combining p-values
-# IMPC tests genes multiple times across batches/conditions, creating multiple p-values for 
-# the same gene-parameter pair. Fisher's method properly combines these independent tests into a single summary p-value
+# Certain gene–parameter combinations have multiple recorded p-values in the dataset
+# This function applies Fisher’s method (via sumlog) to combine them into one summary p-value
 combine_pvalue <- function(pvals) {
   pvals[pvals == 0] <- 1e-10
   if (length(pvals) < 2) return(pvals[1])
