@@ -1,4 +1,4 @@
-# Data Cleaning and Data Management Coursework - Group 12
+# Data Cleaning and Data Management Coursework (Group 12)
 
 ## Project Structure
 
